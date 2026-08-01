@@ -3,33 +3,42 @@
 > **Working title — rename to whatever your department prefers.**
 > A centralized, searchable library of academic materials for a single university department, replacing the "search WhatsApp forever" workflow.
 
-**Version:** 1.0 · **Scope:** KNUST Computer Science Department, Levels 100–400
+**Version:** 1.1 · **Scope:** KNUST Computer Science Department, Levels 100–400
 **Team:** 2 founders (super-admins) + course reps (uploaders) · **Build method:** AI agents
 **Budget:** GHS 0 / month (all free tiers)
+
+### Changelog (v1.0 → v1.1)
+- **Access is now authenticated, not public.** Students sign in before reading/downloading — a stronger copyright posture and the tutor-requested model.
+- **Login is by KNUST student email, no passwords.** Because KNUST email runs on **Zimbra** (not Google/Microsoft, so no OAuth button), verification is done with an **emailed magic link / one-time code** to the `@st.knust.edu.gh` address. Same goal — verified students, zero passwords — achievable without OAuth.
+- **Sessions handled by Auth.js**, not hand-rolled tokens: long-lived, auto-renewing, so students sign in once.
+- **Index number** is captured as profile identity (auto-routes a student to their level); the *email* is the actual enrolment gate.
+- Data model, workflows, security, budget, and roadmap updated to match.
 
 ---
 
 ## 1. Executive Summary
 
-Course reps already collect and share every slide, note, past question, and assignment inside per-class WhatsApp groups. That content is impossible to search, expires, and is invisible to new students. This platform becomes the **single, searchable, permanent home** for those same materials.
+Course reps already collect and share every slide, note, past question, and assignment inside per-class WhatsApp groups. That content is impossible to search, expires, and is invisible to new students. This platform becomes the **single, searchable, permanent home** for those same materials — accessible only to verified KNUST students.
 
-The design is deliberately small. It is **not** a Moodle/Canvas clone. It is a fast, public, read-only library that the people who already do the work (course reps) keep filled, with the two founders sitting above them as moderators. Everything that would add cost, complexity, or risk without earning its place today has been cut and listed explicitly as a non-goal.
+The design is deliberately small. It is **not** a Moodle/Canvas clone. It is a fast, students-only, read-oriented library that the people who already do the work (course reps) keep filled, with the two founders sitting above them as moderators. Everything that would add cost, complexity, or risk without earning its place today has been cut and listed explicitly as a non-goal.
 
-The guiding principle throughout: **spend design effort only on the decisions that are expensive to reverse** (data model, storage, access model). Everything else is deferred until real usage proves it is needed.
+Guiding principle: **spend design effort only on decisions that are expensive to reverse** (data model, storage, access model). Everything else is deferred until real usage proves it is needed.
 
 ---
 
 ## 2. Goals & Non-Goals
 
 ### Goals
-- A student finds any material for their level in **three taps** (Level → Semester → Course) or one search, without an account.
+- A signed-in student finds any material for their level in **three taps** (Level → Semester → Course) or one search.
+- **Access is restricted to verified KNUST students** via their institutional email — no passwords stored, and students sign in only once thanks to long-lived sessions.
 - Course reps upload as easily as dropping a file in a group chat — but only within the level they represent.
 - The two founders can moderate, recover, and manage structure without touching every file.
 - Runs permanently on free tiers.
-- Clean enough on a phone and light enough on mobile data that Ghanaian students actually prefer it to WhatsApp.
+- Clean on a phone and light on mobile data, so students prefer it to WhatsApp.
 
-### Non-Goals (things we are consciously NOT building yet)
-- **No student accounts.** Reading and downloading are public.
+### Non-Goals (consciously NOT building yet)
+- **No anonymous/public access.** Reading requires a verified KNUST student login.
+- **No passwords.** Identity is proven by control of a KNUST mailbox (magic link / OTP).
 - **No video/large-file hosting.** Videos are stored elsewhere and linked (see §9).
 - **No lecturer accounts or dashboards.** Lecturer is just a text field on a course.
 - **No approval/moderation queue.** Reps are trusted; the founders' soft-delete is the backstop.
@@ -40,53 +49,84 @@ The guiding principle throughout: **spend design effort only on the decisions th
 
 ## 3. Users & Roles
 
-Three tiers. The critical correction to "reps are admins": **reps are *scoped uploaders*, not admins.** A rep can only write within the level(s) they represent, so no single rep can damage the whole department, and reps can be rotated out safely each year.
+Everyone signs in with the **same mechanism** — a KNUST student email magic link. What differs is the **role** attached to that email. Reps and super-admins are simply students whose email has been granted extra powers.
 
-| Role | Accounts? | Can read | Can upload | Scope of write | Can manage structure / users |
-|------|-----------|----------|------------|----------------|------------------------------|
-| **Student** | No | ✅ active resources | ❌ | — | ❌ |
-| **Course Rep** | Yes (Google) | ✅ | ✅ | **only courses in their assigned level(s)** | ❌ |
-| **Super-Admin** (the 2 founders) | Yes (Google) | ✅ | ✅ | everything | ✅ |
+The critical distinction: **reps are *scoped uploaders*, not admins.** A rep can only write within the level(s) they represent, so no single rep can damage the whole department, and reps can be rotated out safely each year.
 
-**The entire permission system in one sentence:**
-> Super-admins may do anything; a rep may create/edit/soft-delete resources only on courses whose level is in their assigned levels; students read active resources and submit material requests.
+| Role | Sign-in | Can read | Can upload | Scope of write | Manage structure / users |
+|------|---------|----------|------------|----------------|--------------------------|
+| **Student** | KNUST email magic link | ✅ (signed in) | ❌ | — | ❌ |
+| **Course Rep** | KNUST email magic link | ✅ | ✅ | **only courses in their assigned level(s)** | ❌ |
+| **Super-Admin** (2 founders) | KNUST email magic link | ✅ | ✅ | everything | ✅ |
+
+**The permission system in two sentences:**
+> Reading any resource requires a valid session (any role). Writing a resource requires `super_admin`, OR `rep` where the course's level is in that rep's assigned levels.
 
 ```mermaid
 flowchart TD
     W[Write request on a resource] --> R{Role?}
     R -->|super_admin| Allow[Allow]
     R -->|rep| Scope{Course level in rep's assigned levels?}
-    R -->|student / none| Deny[Deny]
+    R -->|student| Deny[Deny]
     Scope -->|yes| Allow
     Scope -->|no| Deny
 ```
 
-**Rep scope granularity:** we use **level-based scope** (a rep owns Level 100, etc.), because that mirrors the existing per-class WhatsApp groups and keeps assignment overhead tiny. If a single level ever has multiple reps who shouldn't overlap, tighten to course-level scope later — the data model already supports it.
+**Rep scope granularity:** **level-based** (a rep owns Level 100, etc.), mirroring the per-class WhatsApp groups and keeping assignment overhead tiny. If one level ever has multiple non-overlapping reps, tighten to course-level scope later — the model already supports it.
 
 ---
 
-## 4. Information Architecture & Navigation
+## 4. Authentication & Sessions
+
+**Why not "Sign in with Google/Microsoft":** KNUST student mail runs on **Zimbra** (self-hosted, `stdmail.knust.edu.gh`, `@st.knust.edu.gh` addresses). Zimbra exposes no OAuth login, so there is no institutional "sign in with…" button to use.
+
+**The mechanism that still achieves your goal — verified students, no passwords:**
+
+```mermaid
+flowchart TD
+    A[Enter KNUST email] --> B{Ends in st.knust.edu.gh?}
+    B -->|No| Rej[Rejected - not a student email]
+    B -->|Yes| C[Email a magic link / one-time code]
+    C --> D[Student opens KNUST mailbox and clicks link]
+    D --> E[Email ownership verified = enrolled student]
+    E --> F{Email on rep/admin list?}
+    F -->|Yes| G[Session with rep or admin role + scope]
+    F -->|No| H[Session with student role]
+    G --> I[Long-lived rolling session - not asked again]
+    H --> I
+```
+
+- **Provider:** Auth.js **Email (passwordless) provider**, restricted to the `@st.knust.edu.gh` domain at sign-in. Control of a KNUST mailbox = proof of enrolment, since only KNUST issues those addresses.
+- **Sessions:** managed by Auth.js (your "ship securely & fast" choice) — a long `maxAge` with rolling renewal means one sign-in lasts. **No hand-rolled access/refresh tokens**, so none of the token-rotation footguns.
+- **Role resolution:** on login, the email is checked against the rep/admin list; otherwise the session is a plain student. Reps and admins therefore need no separate login.
+- **Index number:** collected once at first login as profile data (used to auto-route the student to their level and for display/attribution). It is *not* the security gate — the email is.
+
+> Confirm the exact student email domain before building (expected `@st.knust.edu.gh`). If postgraduate or some cohorts use a different sub-domain, allow those too.
+
+---
+
+## 5. Information Architecture & Navigation
 
 The student's path is a direct reflection of the data model — no folders, just structured metadata:
 
 ```mermaid
 flowchart LR
-    Home --> Level["Select Level 100-400"]
+    Login["Signed in"] --> Level["Select Level 100-400"]
     Level --> Semester["Select Semester 1 or 2"]
     Semester --> Courses["Course list: code + title"]
     Courses --> Course["Course page"]
     Course --> Resources["Resources: filter by type and year"]
     Resources --> Download["Download via signed URL"]
-    Home -. "global search" .-> Course
+    Login -. "global search" .-> Course
 ```
 
-Global search runs across course code, course title, resource title, type, and academic year — all structured fields, so search is just filtering, not a search engine to operate. **This clean navigation is the platform's only real advantage over a shared Google Drive, so it is where build effort should concentrate.**
+Global search runs across course code, title, resource title, type, and academic year — all structured fields, so search is filtering, not a search engine to operate. **This clean navigation is the platform's only real advantage over a shared Google Drive, so it is where build effort should concentrate.**
 
 ---
 
-## 5. Data Model
+## 6. Data Model
 
-One deliberate simplification from earlier drafts: we do **not** use a `CourseOffering` entity. With no enrollment, no lecturer accounts, and no scheduling in scope, it is over-engineering. Instead, a **Course is a permanent catalog entry** (it exists once, forever) and yearly variation lives as `academicYear` **metadata on each Resource**. This is how a library actually works: 2025's past questions and 2026's updated slides coexist under the same course, filterable by year, and the rep just picks a year at upload instead of navigating an entity tree.
+One deliberate simplification: we do **not** use a `CourseOffering` entity. With no enrolment, no lecturer accounts, and no scheduling in scope, it is over-engineering. A **Course is a permanent catalog entry** (it exists once, forever) and yearly variation lives as `academicYear` **metadata on each Resource**. This is how a library actually works: 2025's past questions and 2026's updated slides coexist under one course, filterable by year, and the rep just picks a year at upload.
 
 ```mermaid
 erDiagram
@@ -120,18 +160,20 @@ erDiagram
         enum status "active, removed"
         int downloadCount
         int courseId FK
-        int uploadedById FK
+        string uploadedById FK
     }
     USER {
-        int id PK
+        string id PK
         string name
-        string email UK
-        enum role "super_admin, rep"
+        string email UK "must be st.knust.edu.gh"
+        datetime emailVerified
+        enum role "student, rep, super_admin"
         enum status "active, inactive"
+        string indexNumber UK "profile identity"
     }
     REPSCOPE {
         int id PK
-        int userId FK
+        string userId FK
         int level "100-400"
     }
     MATERIALREQUEST {
@@ -142,36 +184,36 @@ erDiagram
     }
 ```
 
-**Why `MaterialRequest` exists:** since students can't upload, this one-tap "I'm looking for X and it's not here" button is how you *learn what's missing*. It is not an upload — it is your coverage radar, and it directly fights the platform's biggest failure mode (a student finds nothing and returns to WhatsApp).
+**Why `MaterialRequest` exists:** the one-tap "I'm looking for X and it's not here" button is how you *learn what's missing*. It's your coverage radar and directly fights the platform's biggest failure mode — a student finding nothing and returning to WhatsApp.
 
-**The one future-proofing decision:** `Department` is a real table and `Course.departmentId` exists, even though there is exactly one department today. That is one cheap column that keeps multi-department expansion possible *without building any department-management feature now.* That is the correct amount of future-proofing: a column, not a subsystem.
+**The one future-proofing decision:** `Department` is a real table and `Course.departmentId` exists, even with exactly one department today. That's one cheap column keeping multi-department expansion possible *without building any department-management feature now.* The correct amount of future-proofing: a column, not a subsystem.
 
-(Full Prisma schema in Appendix A.)
+> Auth.js adds its own tables (`Account`, `Session`, `VerificationToken`) and extends `User`. These are included in Appendix A so the schema is build-ready.
 
 ---
 
-## 6. System Architecture
+## 7. System Architecture
 
 ```mermaid
 flowchart TD
     subgraph Client
-      Student["Student browser - no login"]
-      Rep["Rep / Admin browser - Google login"]
+      User["Student / Rep / Admin browser"]
     end
     subgraph Vercel["Vercel - Next.js App Router"]
       UI[Pages and UI]
       API[API routes]
-      Authjs[Auth.js]
+      Authjs[Auth.js - sessions]
     end
-    Neon[("Neon Postgres - metadata")]
+    Neon[("Neon Postgres - metadata + sessions")]
     R2[("Cloudflare R2 - files")]
-    Google["Google OAuth"]
+    Mail["Email service - Resend or Brevo"]
 
-    Student --> UI
-    Rep --> UI
+    User --> UI
     UI --> API
-    Rep --> Authjs
-    Authjs --> Google
+    UI --> Authjs
+    Authjs --> Mail
+    Mail -. "magic link to st.knust.edu.gh" .-> User
+    Authjs --> Neon
     API --> Neon
     API --> R2
 ```
@@ -181,17 +223,19 @@ flowchart TD
 | Layer | Choice | Why |
 |-------|--------|-----|
 | Framework | **Next.js (App Router) + TypeScript** | One codebase for UI + API; agents generate it reliably |
+| Styling | **Tailwind CSS** | Fast, mobile-first, agent-friendly |
 | Validation | **Zod** | Every input validated; kills whole classes of bugs |
-| ORM / DB | **Prisma + Neon Postgres** | Parameterized queries (no SQLi); free tier |
+| ORM / DB | **Prisma + Neon Postgres** | Parameterized queries (no SQLi); free tier; holds metadata + sessions |
 | File storage | **Cloudflare R2** | Zero egress fees; free tier; S3-compatible |
-| Auth | **Auth.js + Google** | No passwords to leak; reps sign in with Google/KNUST email |
+| Auth | **Auth.js — Email magic-link, gated to KNUST domain** | Verified students, no passwords, managed sessions |
+| Email delivery | **Resend or Brevo (free tier)** | Sends the magic link / OTP |
 | Hosting | **Vercel (Hobby)** | Free for non-commercial; zero-config deploys |
 
 ---
 
-## 7. Key Workflows
+## 8. Key Workflows
 
-### 7.1 Upload (rep or admin)
+### 8.1 Upload (rep or admin)
 
 ```mermaid
 flowchart TD
@@ -208,76 +252,79 @@ flowchart TD
 
 Reps see only courses in their assigned levels. Type and academic year are **required, structured fields** (not free text) — this keeps the library clean and makes search work.
 
-### 7.2 Download (any visitor)
+### 8.2 Download (any signed-in user)
 
-Files are never public. Every download is a short-lived signed URL, so links can't be shared permanently or scraped in bulk.
+Files are never public. Every download requires a valid session and is a short-lived signed URL, so links can't be shared permanently or scraped in bulk.
 
 ```mermaid
 sequenceDiagram
-    participant S as Student
+    participant U as Signed-in user
     participant API as Next.js API
     participant DB as Neon
     participant R2 as Cloudflare R2
-    S->>API: GET /resources/:id/download
+    U->>API: GET /resources/:id/download (with session)
+    API->>API: verify valid session
     API->>DB: check status = ACTIVE, increment downloadCount
     API->>R2: create short-lived signed URL
     R2-->>API: signed URL
-    API-->>S: 302 redirect to signed URL
-    S->>R2: download file directly
+    API-->>U: 302 redirect to signed URL
+    U->>R2: download file directly
 ```
 
-**Data-conscious touch (important for the Ghanaian student context):** always show the **file size next to every download button** so a student on limited mobile data can decide before spending it.
+**Data-conscious touch (important for the Ghanaian student context):** show the **file size next to every download button** so a student on limited mobile data can decide before spending it.
 
-### 7.3 Rep offboarding (yearly turnover)
+### 8.3 Rep offboarding (yearly turnover)
 
-Reps rotate every academic year. Deactivating a rep sets `User.status = INACTIVE` — this revokes their login but **keeps every file they uploaded** (`uploadedBy` and the resources remain). Never hard-delete a user or their content.
-
----
-
-## 8. Security
-
-The threat model that actually matters here — not a generic OWASP checklist, but the real surface for *this* app once reps (a rotating, semi-trusted group) can upload:
-
-| Threat | Mitigation |
-|--------|------------|
-| **Broken access control / IDOR** | Server-side scope check on every write: `super_admin` OR (`rep` AND `resource.course.level ∈ rep.scopes`). Never trust a role sent from the client. |
-| **Malicious file uploads** | Whitelist mime types + cap file size **server-side**; store originals in R2 and never execute them; serve only via short-lived signed URLs from a separate domain. Optional async malware scan. |
-| **Rep account compromise** (you know this risk first-hand) | Google OAuth = no password to phish; instant deactivation via status flag; full audit trail via `uploadedBy`. |
-| **Copyright liability** (now spread across all reps) | Upload-time acknowledgment ("only share materials you're permitted to"); audit trail; founder soft-delete/takedown as backstop. Prefer lecturer-produced material + past questions; avoid wholesale publisher textbooks. |
-| **SQL injection** | Prisma parameterizes all queries. |
-| **Input tampering / mass assignment** | Zod validates and whitelists every field on every endpoint. |
-| **Abuse of public endpoints** | Rate-limit the download and material-request endpoints. |
-
-**Soft-delete everywhere.** `Resource.status` and `User.status` mean an accident or a takedown is one toggle, never lost data.
+Reps rotate every academic year. Deactivating a rep sets `User.status = INACTIVE` — revoking their login while **keeping every file they uploaded** (`uploadedBy` and the resources remain). Never hard-delete a user or their content.
 
 ---
 
 ## 9. Storage Strategy & the 10 GB Rule
 
-- **Metadata → Neon Postgres.** A whole department is a few thousand rows — far under the free tier's 0.5 GB per project.
+- **Metadata + sessions → Neon Postgres.** A whole department plus session rows is a few thousand rows — far under the free tier's 0.5 GB per project.
 - **Files → Cloudflare R2.** Free tier: **10 GB storage, ~10M reads/month, zero egress fees, permanently.** Zero egress is exactly right for a download-heavy app.
-- **Hard rule: do NOT host videos or large files.** 10 GB covers a department's PDFs comfortably, but one semester of recorded lectures would blow past it instantly — and Cloudflare's terms prohibit video hosting anyway. So a "video" or "recording" resource is an **external link** (`externalUrl` → unlisted YouTube / Google Drive), never a stored file.
+- **Hard rule: do NOT host videos or large files.** 10 GB covers a department's PDFs comfortably, but one semester of recorded lectures would blow past it — and Cloudflare's terms prohibit video hosting anyway. A "video"/"recording" resource is an **external link** (`externalUrl` → unlisted YouTube / Drive), never a stored file.
 
-The **10 GB R2 cap is your natural "it's useful, time to invest" trigger** — the first thing that will ever cost money, and only once real adoption fills it. That matches your scale-if-it-works philosophy exactly.
+The **10 GB R2 cap is your natural "it's useful, time to invest" trigger** — the first thing that will ever cost money, and only once real adoption fills it.
 
 ---
 
-## 10. Budget (GHS 0 / month)
+## 10. Security
+
+The threat model that actually matters here, now that access is authenticated and reps can upload:
+
+| Threat | Mitigation |
+|--------|------------|
+| **Unauthorized access** | Every read requires a valid Auth.js session tied to a verified `@st.knust.edu.gh` email. |
+| **Broken access control / IDOR** | Server-side scope check on every write: `super_admin` OR (`rep` AND `resource.course.level ∈ rep.scopes`). Never trust a role sent by the client. |
+| **Malicious file uploads** | Whitelist mime types + cap size **server-side**; store originals in R2 and never execute them; serve only via short-lived signed URLs. Optional async malware scan. |
+| **Magic-link / login abuse (spam)** | Rate-limit sign-in requests per email and per IP; short link/OTP expiry; single-use tokens. |
+| **Rep account compromise** | No passwords to phish; instant deactivation via status flag; full audit trail via `uploadedBy`. |
+| **Copyright liability** | Now materially reduced: content is behind an enrolled-students-only gate (defensible as an internal resource). Keep upload acknowledgment, audit trail, and founder soft-delete/takedown. Prefer lecturer material + past questions; avoid wholesale publisher textbooks. |
+| **SQL injection** | Prisma parameterizes all queries. |
+| **Input tampering / mass assignment** | Zod validates and whitelists every field on every endpoint. |
+
+**Soft-delete everywhere.** `Resource.status` and `User.status` mean an accident or takedown is one toggle, never lost data.
+
+---
+
+## 11. Budget (GHS 0 / month)
 
 | Service | Tier | Free allowance | What to watch |
 |---------|------|----------------|---------------|
 | Vercel | Hobby | Free (non-commercial) | Commercial use later needs Pro |
 | Neon Postgres | Free | 0.5 GB/project, scale-to-zero | Cold-start ~few hundred ms after idle |
 | Cloudflare R2 | Free | 10 GB, ~10M reads/mo, zero egress | **Storage → the 10 GB cap** |
-| Auth.js + Google | — | Free | — |
+| Email (Resend/Brevo) | Free | ~3,000/mo (Resend) or ~300/day (Brevo) | Deliverability to KNUST Zimbra (see risks) |
+| Auth.js | — | Free | — |
 
 **Total recurring cost: 0.** The only future cost trigger is R2 storage crossing 10 GB.
 
 ---
 
-## 11. Search
+## 12. Search
 
-No search engine needed. All searchable data is structured, so search is filtering over Postgres:
+No search engine needed — all searchable data is structured, so search is filtering over Postgres:
 
 - Facets: **level, semester, course code/title, type, academic year.**
 - Free-text: match on course code, course title, resource title.
@@ -285,48 +332,50 @@ No search engine needed. All searchable data is structured, so search is filteri
 
 ---
 
-## 12. MVP vs Later
+## 13. MVP vs Later
 
-### MVP (build this first)
+### MVP (build first)
 1. Seed the department: all Levels 100–400, both semesters, every course (code + title). **This backbone must exist before anything else.**
-2. Public browse (Level → Semester → Course → Resources) + filters + global search.
-3. Signed-URL downloads with size shown and download counting.
-4. Rep/admin Google login + scoped upload (file or link) + soft-delete.
-5. "Request material" button feeding `MaterialRequest`.
-6. Founder admin: add/edit courses, add reps + assign levels, deactivate reps, moderate resources.
+2. KNUST-email magic-link login + long-lived sessions + first-login index-number capture.
+3. Authenticated browse (Level → Semester → Course → Resources) + filters + global search.
+4. Signed-URL downloads with size shown and download counting.
+5. Rep/admin scoped upload (file or link) + soft-delete.
+6. "Request material" button feeding `MaterialRequest`.
+7. Founder admin: add/edit courses, grant rep role + assign levels, deactivate reps, moderate resources.
 
-**MVP success test:** seed **one level** with real content to ~90% coverage and check whether that class's WhatsApp "does anyone have X?" questions drop. That single signal validates the whole idea before you scale content to all four levels.
+**MVP success test:** seed **one level** with real content to ~90% coverage and check whether that class's WhatsApp "does anyone have X?" questions drop. That single signal validates the idea before scaling content to all four levels.
 
-### Version 2 (once MVP is used)
-- Download analytics surfaced to admins; duplicate-upload hints; bulk upload; bookmarks (local, no account).
+### Version 2 (once used)
+- Download analytics for admins; duplicate-upload hints; bulk upload; bookmarks.
 
 ### Future (only if genuinely useful)
 - Notifications; multi-department; PWA/offline; AI search/summarization.
 
 ---
 
-## 13. Risks & Mitigations
+## 14. Risks & Mitigations
 
 | Risk | Likelihood | Mitigation |
 |------|-----------|------------|
-| **Staleness** — reps get busy at exam time, content dries up, students leave | High | Fast bulk upload; `MaterialRequest` shows demand; founders backfill hot courses |
-| **Empty-library cold start** across 4 levels | High | Reps distribute the work (this is *why* rep-upload beats founder-only); seed one level fully first |
-| **Copyright takedown** | Medium | Audit trail + soft-delete + takedown path; avoid publisher textbooks |
-| **Rep account compromised / bad file** | Medium | OAuth, server-side validation, signed URLs, instant deactivation |
-| **"Why not just use Google Drive?"** | Medium | Win on search + clean mobile UX; if you can't beat Drive's experience, the project has no reason to exist — so invest there |
+| **Email deliverability to Zimbra / students don't check KNUST mail** | Medium–High | Use a reputable sender with proper SPF/DKIM on your sending domain; test deliverability to `@st.knust.edu.gh` early; offer OTP as well as link; sign-in is one-time thanks to long sessions |
+| **Staleness** — reps get busy at exams, content dries up | High | Fast bulk upload; `MaterialRequest` shows demand; founders backfill hot courses |
+| **Empty-library cold start** across 4 levels | High | Reps distribute the work (why rep-upload beats founder-only); seed one level fully first |
+| **Copyright takedown** | Low–Medium | Enrolled-only gate + audit trail + soft-delete/takedown; avoid publisher textbooks |
+| **Rep account misuse / bad file** | Medium | Server-side validation, signed URLs, instant deactivation, audit trail |
+| **"Why not just Google Drive?"** | Medium | Win on search + clean mobile UX; if you can't beat Drive's experience, invest there until you do |
 | **Outgrowing 10 GB free tier** | Low (at first) | Videos are links, not files; treat the cap as the invest-now signal |
 
 ---
 
-## 14. Build Roadmap (2 people + AI agents)
+## 15. Build Roadmap (2 people + AI agents)
 
 | Phase | Deliverable | Done when |
 |-------|-------------|-----------|
 | **0 — Foundation** | Prisma schema + migrations + seeded course catalog (all levels) | You can browse an empty-but-complete course tree |
-| **1 — Public read** | Browse, filter, search, signed-URL download, size display | A student finds and downloads a file in 3 taps, no login |
-| **2 — Rep write** | Google auth, scoped upload (file + link), soft-delete, audit | A Level-100 rep uploads to a Level-100 course and nowhere else |
+| **1 — Auth + gated read** | KNUST-email magic-link login, sessions, browse, filter, search, signed-URL download, size display | A verified student signs in once and finds/downloads a file in 3 taps |
+| **2 — Rep write** | Scoped upload (file + link), soft-delete, audit | A Level-100 rep uploads to a Level-100 course and nowhere else |
 | **3 — Founder tools** | Course/rep management, moderation, `MaterialRequest` inbox | You can onboard/offboard a rep and take down a file |
-| **4 — Pilot** | One level seeded to ~90% coverage; measure WhatsApp question drop | The success test in §12 passes |
+| **4 — Pilot** | One level seeded to ~90% coverage; measure WhatsApp question drop | The success test in §13 passes |
 
 Then, and only then, expand content to all four levels and revisit Version 2.
 
@@ -344,9 +393,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------- Enums ----------
 enum Role {
-  SUPER_ADMIN
+  STUDENT
   REP
+  SUPER_ADMIN
 }
 
 enum UserStatus {
@@ -379,6 +430,60 @@ enum RequestStatus {
   DISMISSED
 }
 
+// ---------- Auth.js adapter models ----------
+model User {
+  id            String     @id @default(cuid())
+  name          String?
+  email         String     @unique // enforced @st.knust.edu.gh at sign-in
+  emailVerified DateTime?
+  image         String?
+  role          Role       @default(STUDENT)
+  status        UserStatus @default(ACTIVE)
+  indexNumber   String?    @unique // profile identity, captured at first login
+  accounts      Account[]
+  sessions      Session[]
+  scopes        RepScope[]
+  resources     Resource[]
+  createdAt     DateTime   @default(now())
+}
+
+model Account {
+  // Reserved for future OAuth providers; unused with the Email provider.
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  // Powers the magic-link / OTP flow.
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- Domain models ----------
 model Department {
   id        Int      @id @default(autoincrement())
   name      String   @unique
@@ -415,7 +520,7 @@ model Resource {
   downloadCount Int            @default(0)
   courseId      Int
   course        Course         @relation(fields: [courseId], references: [id])
-  uploadedById  Int
+  uploadedById  String
   uploadedBy    User           @relation(fields: [uploadedById], references: [id])
   createdAt     DateTime       @default(now())
 
@@ -423,22 +528,11 @@ model Resource {
   @@index([academicYear])
 }
 
-model User {
-  id        Int        @id @default(autoincrement())
-  name      String
-  email     String     @unique
-  role      Role
-  status    UserStatus @default(ACTIVE)
-  scopes    RepScope[]
-  resources Resource[]
-  createdAt DateTime   @default(now())
-}
-
 model RepScope {
-  id     Int  @id @default(autoincrement())
-  userId Int
-  user   User @relation(fields: [userId], references: [id])
-  level  Int  // 100–400
+  id     Int    @id @default(autoincrement())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  level  Int    // 100–400
 
   @@unique([userId, level])
 }
@@ -456,14 +550,18 @@ model MaterialRequest {
 
 ---
 
-## Appendix B — Core REST Endpoints
+## Appendix B — Core Endpoints
 
-**Public (no auth):**
+**Auth (handled by Auth.js):**
+- `/api/auth/*` — sign-in (email magic link), callback, sign-out, session. Domain gate (`@st.knust.edu.gh`) enforced in the sign-in callback.
+
+**Authenticated — any signed-in student:**
 - `GET /api/courses?level=&semester=` — list courses
 - `GET /api/courses/:code` — course detail
 - `GET /api/courses/:code/resources?type=&year=` — resources for a course
-- `GET /api/resources/:id/download` — verify active, increment count, return/redirect to signed URL
+- `GET /api/resources/:id/download` — verify session + active, increment count, redirect to signed URL
 - `POST /api/requests` — submit a material request
+- `PATCH /api/me` — set/update index number (first-login onboarding)
 
 **Rep / Admin (auth + scope check):**
 - `POST /api/resources` — multipart (file → validate → R2) or link; sets `uploadedBy`
@@ -472,11 +570,10 @@ model MaterialRequest {
 
 **Super-Admin only:**
 - `POST /api/courses`, `PATCH /api/courses/:id`
-- `POST /api/users` — add rep + assign level scopes
-- `PATCH /api/users/:id` — deactivate rep / change scopes
+- `PATCH /api/users/:id` — grant rep role + assign level scopes / deactivate
 - `GET /api/requests` — material-request inbox; `PATCH /api/requests/:id` — resolve
 
-Every write endpoint enforces: `role === SUPER_ADMIN` **OR** (`role === REP` **AND** target course level ∈ rep's scopes). All bodies validated with Zod.
+Every write enforces: `role === SUPER_ADMIN` **OR** (`role === REP` **AND** target course level ∈ rep's scopes). Every read enforces a valid session. All bodies validated with Zod.
 
 ---
 
