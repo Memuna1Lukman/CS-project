@@ -1,6 +1,18 @@
 export type ResourceType = 'SLIDES' | 'PAST_QUESTION' | 'LAB_MANUAL' | 'BOOK' | 'NOTES' | 'OTHER';
 export type ResourceStatus = 'ACTIVE' | 'REMOVED';
 
+export type Level = 100 | 200 | 300 | 400;
+export type Semester = 1 | 2;
+
+export interface Course {
+  code: string;
+  title: string;
+  level: Level;
+  semester: Semester;
+  lecturer?: string;
+  resourceCount: number;
+}
+
 export interface Resource {
   id: string;
   title: string;

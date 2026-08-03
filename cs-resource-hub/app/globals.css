@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+:root {
+  --topbar-bg: #14161a;
+  --topbar-fg: #f5f6f7;
+  --topbar-fg-muted: rgba(245, 246, 247, 0.6);
+  --topbar-hover: rgba(255, 255, 255, 0.1);
+  --sidebar-bg: #ffffff;
+  --sidebar-fg: #1c1e22;
+  --sidebar-fg-muted: #8a8f98;
+  --canvas-bg: #f7f8fa;
+  --card-bg: #ffffff;
+  --border: #e6e8eb;
+  --text-primary: #1c1e22;
+  --text-muted: #6b7078;
+  --scrim: rgba(0, 0, 0, 0.3);
+  --focus: #2f6fed;
+
+  /* Soft pastel accent — set by the human. Do not invent a value here. */
+  --accent: ;
+  --accent-fg: ;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
