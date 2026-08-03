@@ -570,7 +570,7 @@ model MaterialRequest {
 
 **Super-Admin only:**
 - `POST /api/courses`, `PATCH /api/courses/:id`
-- `PATCH /api/users/:id` — grant rep role + assign level scopes / deactivate
+- `PATCH /api/users/:id` — grant rep role + assignapp level scopes / deactivate
 - `GET /api/requests` — material-request inbox; `PATCH /api/requests/:id` — resolve
 
 Every write enforces: `role === SUPER_ADMIN` **OR** (`role === REP` **AND** target course level ∈ rep's scopes). Every read enforces a valid session. All bodies validated with Zod.
