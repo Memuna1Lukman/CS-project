@@ -21,7 +21,7 @@ export default function AdminOverviewPage() {
             <li key={section.href}>
               <Link
                 href={section.href}
-                className="flex items-center min-h-11 px-4 rounded-xl bg-[var(--card-bg)] border border-[var(--border)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--canvas-bg)]"
+                className="flex items-center min-h-11 px-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
               >
                 {section.label}
               </Link>

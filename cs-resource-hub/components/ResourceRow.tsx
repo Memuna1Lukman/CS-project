@@ -11,8 +11,8 @@ export default function ResourceRow({ resource }: { resource: Resource }) {
   const handleAction = () => {};
 
   return (
-    <div className="flex items-center gap-4 bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl px-4 py-3 shadow-sm">
-      <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-lg bg-[var(--canvas-bg)] text-[var(--text-muted)]">
+    <div className="flex items-center gap-2 sm:gap-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl px-3 py-2.5 shadow-[0_1px_2px_var(--shadow)]">
+      <span className="hidden sm:inline-block shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]">
         {RESOURCE_TYPE_LABELS[resource.type]}
       </span>
 
@@ -20,11 +20,15 @@ export default function ResourceRow({ resource }: { resource: Resource }) {
         <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
           {resource.title}
         </p>
-        <p className="text-xs text-[var(--text-muted)] mt-0.5">{resource.academicYear}</p>
+        <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
+          <span className="sm:hidden">{RESOURCE_TYPE_LABELS[resource.type]} · </span>
+          {resource.academicYear}
+          {!isExternal && resource.fileSize ? ` · ${resource.fileSize}` : ''}
+        </p>
       </div>
 
       {!isExternal && resource.fileSize && (
-        <span className="shrink-0 text-xs text-[var(--text-muted)] tabular-nums">
+        <span className="hidden sm:inline shrink-0 text-xs text-[var(--text-muted)] tabular-nums">
           {resource.fileSize}
         </span>
       )}

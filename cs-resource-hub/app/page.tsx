@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import TopBar from '@/components/TopBar';
 import Sidebar from '@/components/Sidebar';
 import CourseCard from '@/components/CourseCard';
+import StatCard from '@/components/StatCard';
 import { MOCK_COURSES } from '@/lib/mockData';
 import { Level, Semester } from '@/types/resource';
 
@@ -18,10 +19,15 @@ export default function LibraryPage() {
     [activeLevel]
   );
 
+  const totalResources = useMemo(
+    () => coursesByLevel.reduce((sum, c) => sum + c.resourceCount, 0),
+    [coursesByLevel]
+  );
+
   const semesters: Semester[] = [1, 2];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--canvas-bg)]">
+    <div className="min-h-screen flex flex-col bg-[var(--bg)]">
       <TopBar onToggleSidebar={() => setSidebarOpen((v) => !v)} />
 
       <div className="flex flex-1">
@@ -32,36 +38,44 @@ export default function LibraryPage() {
           onClose={() => setSidebarOpen(false)}
         />
 
-        <main className="flex-1 p-4 sm:p-8">
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+        <main className="flex-1 p-4 sm:p-6">
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">
             Level {activeLevel}
           </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
+          <p className="text-sm text-[var(--text-muted)] mt-0.5">
             Browse courses and their resources.
           </p>
 
           {coursesByLevel.length === 0 ? (
-            <div className="mt-8 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
+            <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
               No courses in this level yet.
             </div>
           ) : (
-            semesters.map((semester) => {
-              const courses = coursesByLevel.filter((c) => c.semester === semester);
-              if (courses.length === 0) return null;
+            <>
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full sm:max-w-md">
+                <StatCard label="Courses" value={coursesByLevel.length} />
+                <StatCard label="Resources" value={totalResources} />
+                <StatCard label="Semesters" value={semesters.length} />
+              </div>
 
-              return (
-                <section key={semester} className="mt-8">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] mb-4">
-                    Semester {semester}
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {courses.map((course) => (
-                      <CourseCard key={course.code} course={course} />
-                    ))}
-                  </div>
-                </section>
-              );
-            })
+              {semesters.map((semester) => {
+                const courses = coursesByLevel.filter((c) => c.semester === semester);
+                if (courses.length === 0) return null;
+
+                return (
+                  <section key={semester} className="mt-6">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">
+                      Semester {semester}
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                      {courses.map((course) => (
+                        <CourseCard key={course.code} course={course} />
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </>
           )}
         </main>
       </div>

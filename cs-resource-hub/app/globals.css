@@ -1,24 +1,59 @@
 @import "tailwindcss";
 
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+}
+
 :root {
-  --topbar-bg: #14161a;
-  --topbar-fg: #f5f6f7;
-  --topbar-fg-muted: rgba(245, 246, 247, 0.6);
-  --topbar-hover: rgba(255, 255, 255, 0.1);
-  --sidebar-bg: #ffffff;
-  --sidebar-fg: #1c1e22;
-  --sidebar-fg-muted: #8a8f98;
-  --canvas-bg: #f7f8fa;
-  --card-bg: #ffffff;
-  --border: #e6e8eb;
+  /* Surfaces */
+  --bg: #eceef3;
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --surface-3: #eceef2;
+
+  /* Top bar (light in light theme) */
+  --topbar-bg: #ffffff;
+  --topbar-fg: #1c1e22;
+
+  /* Text */
   --text-primary: #1c1e22;
   --text-muted: #6b7078;
-  --scrim: rgba(0, 0, 0, 0.3);
-  --focus: #2f6fed;
+  --text-subtle: #9aa0aa;
 
-  /* Soft pastel accent — set by the human. Do not invent a value here. */
-  --accent: ;
-  --accent-fg: ;
+  /* Lines & depth */
+  --border: #e2e5ea;
+  --focus: #2f6fed;
+  --shadow: rgba(20, 22, 30, 0.12);
+  --scrim: rgba(15, 17, 22, 0.4);
+
+  /* Accent — periwinkle. Values fixed by the human; do not invent alternates. */
+  --accent: #aec5ff;
+  --accent-fg: #1e2a44;
+  --accent-subtle: #e7edfc;
+}
+
+[data-theme="dark"] {
+  --bg: #101218;
+  --surface: #1c1f24;
+  --surface-2: #191b20;
+  --surface-3: #262930;
+
+  --topbar-bg: #1c1f24;
+  --topbar-fg: #f2f3f5;
+
+  --text-primary: #f2f3f5;
+  --text-muted: #a7acb5;
+  --text-subtle: #767b85;
+
+  --border: #2a2d33;
+  --focus: #6d9bff;
+  --shadow: rgba(0, 0, 0, 0.55);
+  --scrim: rgba(0, 0, 0, 0.6);
+
+  --accent: #aec5ff;
+  --accent-fg: #1e2a44;
+  --accent-subtle: rgba(174, 197, 255, 0.16);
 }
 
 *:focus-visible {

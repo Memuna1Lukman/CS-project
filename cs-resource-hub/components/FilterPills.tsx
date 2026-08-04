@@ -19,7 +19,7 @@ export default function FilterPills({ label, options, active, onChange }: Filter
         className={`px-3 min-h-11 flex items-center rounded-full text-xs font-medium border transition ${
           active === null
             ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-transparent'
-            : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--canvas-bg)]'
+            : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-3)]'
         }`}
       >
         All
@@ -34,7 +34,7 @@ export default function FilterPills({ label, options, active, onChange }: Filter
           className={`px-3 min-h-11 flex items-center rounded-full text-xs font-medium border transition ${
             active === option
               ? 'bg-[var(--accent)] text-[var(--accent-fg)] border-transparent'
-              : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--canvas-bg)]'
+              : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-3)]'
           }`}
         >
           {option}

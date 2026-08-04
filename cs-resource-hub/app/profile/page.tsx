@@ -25,7 +25,7 @@ export default function ProfilePage() {
             <li key={link.href}>
               <Link
                 href={link.href}
-                className="flex items-center justify-between min-h-11 px-4 rounded-xl bg-[var(--card-bg)] border border-[var(--border)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--canvas-bg)]"
+                className="flex items-center justify-between min-h-11 px-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
               >
                 {link.label}
                 <span className="text-xs font-normal text-[var(--text-muted)]">{link.note}</span>

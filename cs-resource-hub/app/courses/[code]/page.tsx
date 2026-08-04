@@ -61,10 +61,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
       </Link>
 
       <header>
-        <span className="inline-block font-mono text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-muted)]">
+        <span className="inline-block font-mono text-[11px] font-semibold px-2 py-1 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)]">
           {course.code}
         </span>
-        <h1 className="mt-3 text-2xl font-bold text-[var(--text-primary)] leading-snug">
+        <h1 className="mt-2.5 text-xl font-bold text-[var(--text-primary)] leading-snug">
           {course.title}
         </h1>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -72,12 +72,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
         </p>
       </header>
 
-      <div className="mt-8 space-y-3">
+      <div className="mt-6 space-y-2.5">
         <FilterPills label="Type" options={typeOptions} active={typeFilter} onChange={setTypeFilter} />
         <FilterPills label="Year" options={yearOptions} active={yearFilter} onChange={setYearFilter} />
       </div>
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-5 space-y-2">
         {filteredResources.length > 0 ? (
           filteredResources.map((resource) => (
             <ResourceRow key={resource.id} resource={resource} />
@@ -89,7 +89,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
         )}
       </div>
 
-      <div className="mt-8 pt-6 border-t border-[var(--border)]">
+      <div className="mt-6 pt-5 border-t border-[var(--border)]">
         {/* TODO(backend): POST /api/requests with { courseCode, note } */}
         <button
           type="button"
