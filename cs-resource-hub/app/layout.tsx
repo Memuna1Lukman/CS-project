@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
+import { MockSessionProvider } from "@/components/MockSessionProvider";
+import { MockLibraryProvider } from "@/components/MockLibraryProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -45,7 +47,11 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <MockSessionProvider>
+          <MockLibraryProvider>{children}</MockLibraryProvider>
+        </MockSessionProvider>
+      </body>
     </html>
   );
 }

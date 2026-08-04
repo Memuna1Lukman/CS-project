@@ -13,6 +13,29 @@ export interface Course {
   resourceCount: number;
 }
 
+export type Role = 'STUDENT' | 'REP' | 'SUPER_ADMIN';
+export type UserStatus = 'ACTIVE' | 'INACTIVE';
+
+// Mock signed-in user shape. Mirrors the eventual Auth.js session + Prisma
+// User fields (design doc §6) but is populated entirely from MOCK_USERS.
+export interface MockUser {
+  email: string;
+  name: string;
+  role: Role;
+  level: Level;
+  indexNumber: string;
+  status: UserStatus;
+}
+
+export type RequestStatus = 'OPEN' | 'FULFILLED' | 'DISMISSED';
+
+export interface MaterialRequest {
+  id: string;
+  courseCode?: string;
+  note: string;
+  status: RequestStatus;
+}
+
 export interface Resource {
   id: string;
   title: string;

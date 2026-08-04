@@ -1,22 +1,35 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import TopBar from '@/components/TopBar';
 import Sidebar from '@/components/Sidebar';
 import CourseCard from '@/components/CourseCard';
 import StatCard from '@/components/StatCard';
-import { MOCK_COURSES } from '@/lib/mockData';
 import { Level, Semester } from '@/types/resource';
+import { useSession } from '@/components/MockSessionProvider';
+import { useLibrary } from '@/components/MockLibraryProvider';
 
 // TODO(backend): GET /api/courses?level=&semester= instead of filtering
-// MOCK_COURSES client-side.
+// mock courses client-side.
 export default function LibraryPage() {
-  const [activeLevel, setActiveLevel] = useState<Level>(100);
+  const { session } = useSession();
+  const { courses } = useLibrary();
+  const [activeLevel, setActiveLevel] = useState<Level>(session?.level ?? 100);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Students (and any role) land on their own level by default. Design doc §3:
+  // students can still read every level, so this only sets the default — the
+  // Sidebar level switcher below stays fully interactive.
+  useEffect(() => {
+    if (session) setActiveLevel(session.level);
+    // Only re-sync when the underlying level changes (e.g. the demo role
+    // switcher on /profile), not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.level]);
+
   const coursesByLevel = useMemo(
-    () => MOCK_COURSES.filter((course) => course.level === activeLevel),
-    [activeLevel]
+    () => courses.filter((course) => course.level === activeLevel),
+    [courses, activeLevel]
   );
 
   const totalResources = useMemo(

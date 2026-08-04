@@ -3,11 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Menu, Search, UserCircle } from 'lucide-react';
+import { ArrowLeft, LogOut, Menu, Search, UserCircle } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { useSession } from './MockSessionProvider';
+import type { Role } from '@/types/resource';
+
+const ROLE_LABELS: Record<Role, string> = {
+  STUDENT: 'Student',
+  REP: 'Course Rep',
+  SUPER_ADMIN: 'Super Admin',
+};
 
 export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const router = useRouter();
+  const { session, signOut } = useSession();
   const [query, setQuery] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
@@ -100,13 +109,48 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => vo
 
       <ThemeToggle />
 
-      <Link
-        href="/profile"
-        className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-[var(--surface-3)]"
-        aria-label="Account"
-      >
-        <UserCircle className="w-7 h-7" />
-      </Link>
+      {session ? (
+        <>
+          <Link
+            href="/profile"
+            className="hidden sm:flex items-center gap-2 pl-2 pr-3 h-11 rounded-full hover:bg-[var(--surface-3)] max-w-[12rem]"
+          >
+            <span className="w-7 h-7 shrink-0 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] flex items-center justify-center text-xs font-bold">
+              {session.name.charAt(0).toUpperCase()}
+            </span>
+            <span className="min-w-0 flex flex-col leading-tight text-left">
+              <span className="text-xs font-semibold truncate">{session.email}</span>
+              <span className="text-[10px] text-[var(--text-muted)] truncate">
+                {ROLE_LABELS[session.role]} · Level {session.level}
+              </span>
+            </span>
+          </Link>
+
+          <Link
+            href="/profile"
+            className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-[var(--surface-3)]"
+            aria-label="Account"
+          >
+            <UserCircle className="w-7 h-7" />
+          </Link>
+
+          <button
+            type="button"
+            onClick={signOut}
+            aria-label="Sign out"
+            className="hidden sm:flex w-11 h-11 shrink-0 items-center justify-center rounded-full hover:bg-[var(--surface-3)]"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </>
+      ) : (
+        <Link
+          href="/sign-in"
+          className="px-3.5 min-h-11 flex items-center rounded-lg text-sm font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
+        >
+          Sign in
+        </Link>
+      )}
     </header>
   );
 }

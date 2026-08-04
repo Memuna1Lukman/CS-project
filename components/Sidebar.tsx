@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Level } from '@/types/resource';
-import { MOCK_COURSES } from '@/lib/mockData';
+import { useLibrary } from './MockLibraryProvider';
+import { useSession } from './MockSessionProvider';
 
 const LEVELS: Level[] = [100, 200, 300, 400];
 const SEMESTERS: (1 | 2)[] = [1, 2];
@@ -19,6 +20,8 @@ interface SidebarProps {
 
 export default function Sidebar({ activeLevel, onSelectLevel, open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { session } = useSession();
+  const { courses: allCourses } = useLibrary();
   const [expanded, setExpanded] = useState<Set<Level>>(new Set([activeLevel]));
   const [collapsed, setCollapsed] = useState(false);
 
@@ -66,7 +69,7 @@ export default function Sidebar({ activeLevel, onSelectLevel, open, onClose }: S
           {LEVELS.map((level) => {
             const isActiveLevel = level === activeLevel;
             const isExpanded = expanded.has(level) && !collapsed;
-            const courses = MOCK_COURSES.filter((c) => c.level === level);
+            const courses = allCourses.filter((c) => c.level === level);
 
             return (
               <div key={level}>
@@ -84,10 +87,15 @@ export default function Sidebar({ activeLevel, onSelectLevel, open, onClose }: S
                       onSelectLevel(level);
                       onClose();
                     }}
-                    className="flex-1 text-left px-3 min-h-11 md:min-h-9 flex items-center"
+                    className="flex-1 text-left px-3 min-h-11 md:min-h-9 flex items-center justify-between gap-2"
                     title={collapsed ? `Level ${level}` : undefined}
                   >
-                    {collapsed ? level : `Level ${level}`}
+                    <span className="truncate">{collapsed ? level : `Level ${level}`}</span>
+                    {!collapsed && session?.level === level && (
+                      <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-[var(--text-subtle)]">
+                        Your level
+                      </span>
+                    )}
                   </button>
 
                   {!collapsed && (

@@ -2,11 +2,13 @@
 
 import { use, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Upload } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import FilterPills from '@/components/FilterPills';
 import ResourceRow from '@/components/ResourceRow';
-import { MOCK_COURSES, MOCK_RESOURCES } from '@/lib/mockData';
+import UploadResourceDrawer from '@/components/UploadResourceDrawer';
+import { useLibrary } from '@/components/MockLibraryProvider';
+import { useSession } from '@/components/MockSessionProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 
 // TODO(backend): GET /api/courses/:code for the header, GET
@@ -15,11 +17,21 @@ import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 export default function CourseDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const courseCode = decodeURIComponent(code);
+  const { session } = useSession();
+  const { courses, resources: allResources } = useLibrary();
+  const [uploadOpen, setUploadOpen] = useState(false);
 
-  const course = MOCK_COURSES.find((c) => c.code === courseCode);
+  const course = courses.find((c) => c.code === courseCode);
   const resources = useMemo(
-    () => MOCK_RESOURCES.filter((r) => r.courseCode === courseCode),
-    [courseCode]
+    () => allResources.filter((r) => r.courseCode === courseCode && r.status === 'ACTIVE'),
+    [allResources, courseCode]
+  );
+
+  // Real scope check (design doc §3): a rep can only write within the
+  // level(s) they're assigned — never trust the client for real enforcement,
+  // but this mirrors what the eventual server-side check will gate.
+  const canUpload = Boolean(
+    session && course && session.role === 'REP' && session.level === course.level
   );
 
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -60,16 +72,29 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
         <ArrowLeft className="w-4 h-4" /> Back to library
       </Link>
 
-      <header>
-        <span className="inline-block font-mono text-[11px] font-semibold px-2 py-1 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)]">
-          {course.code}
-        </span>
-        <h1 className="mt-2.5 text-xl font-bold text-[var(--text-primary)] leading-snug">
-          {course.title}
-        </h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
-          {course.lecturer ? `${course.lecturer} · ` : ''}Level {course.level} · Semester {course.semester}
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <span className="inline-block font-mono text-[11px] font-semibold px-2 py-1 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)]">
+            {course.code}
+          </span>
+          <h1 className="mt-2.5 text-xl font-bold text-[var(--text-primary)] leading-snug">
+            {course.title}
+          </h1>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            {course.lecturer ? `${course.lecturer} · ` : ''}Level {course.level} · Semester {course.semester}
+          </p>
+        </div>
+
+        {canUpload && (
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            className="shrink-0 flex items-center gap-1.5 min-h-11 px-3.5 rounded-lg text-xs font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
+          >
+            <Upload className="w-3.5 h-3.5" aria-hidden="true" />
+            Upload material
+          </button>
+        )}
       </header>
 
       <div className="mt-6 space-y-2.5">
@@ -99,6 +124,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
           Can&apos;t find what you&apos;re looking for? Request material
         </button>
       </div>
+
+      {canUpload && (
+        <UploadResourceDrawer
+          course={course}
+          open={uploadOpen}
+          onClose={() => setUploadOpen(false)}
+        />
+      )}
     </PageShell>
   );
 }

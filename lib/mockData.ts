@@ -1,4 +1,4 @@
-import { Course, Resource } from '@/types/resource';
+import { Course, MaterialRequest, MockUser, Resource } from '@/types/resource';
 
 const COURSE_DEFS: Omit<Course, 'resourceCount'>[] = [
   { code: 'CSM 151', title: 'Structured Programming', level: 100, semester: 1, lecturer: 'Dr. K. Owusu' },
@@ -95,3 +95,21 @@ export const MOCK_COURSES: Course[] = COURSE_DEFS.map((c) => ({
   ...c,
   resourceCount: MOCK_RESOURCES.filter((r) => r.courseCode === c.code).length,
 }));
+
+// Sample directory the mock sign-in flow looks an email up against.
+// TODO(backend): replace with a real Prisma User lookup keyed by verified email.
+export const MOCK_USERS: MockUser[] = [
+  { email: 'ama.serwaa@st.knust.edu.gh', name: 'Ama Serwaa', role: 'STUDENT', level: 200, indexNumber: '8412621', status: 'ACTIVE' },
+  { email: 'kofi.mensah@st.knust.edu.gh', name: 'Kofi Mensah', role: 'STUDENT', level: 100, indexNumber: '8501122', status: 'ACTIVE' },
+  { email: 'efua.owusu@st.knust.edu.gh', name: 'Efua Owusu', role: 'REP', level: 300, indexNumber: '8300456', status: 'ACTIVE' },
+  { email: 'yaw.darko@st.knust.edu.gh', name: 'Yaw Darko', role: 'REP', level: 100, indexNumber: '8100987', status: 'ACTIVE' },
+  { email: 'kwabena.asante@st.knust.edu.gh', name: 'Kwabena Asante', role: 'SUPER_ADMIN', level: 400, indexNumber: '8000001', status: 'ACTIVE' },
+];
+
+// TODO(backend): replace with GET /api/requests + PATCH /api/requests/:id (super-admin only, see Appendix B).
+export const MOCK_REQUESTS: MaterialRequest[] = [
+  { id: 'req-1', courseCode: 'CSM 253', note: 'Looking for 2022/2023 past questions.', status: 'OPEN' },
+  { id: 'req-2', courseCode: 'CSM 357', note: 'Missing lecture notes for weeks 5-8.', status: 'OPEN' },
+  { id: 'req-3', courseCode: 'CSM 158', note: 'Any recording of the HTML/CSS lab walkthrough?', status: 'FULFILLED' },
+  { id: 'req-4', note: 'Can we get a general study-skills resource for 100 level?', status: 'DISMISSED' },
+];
