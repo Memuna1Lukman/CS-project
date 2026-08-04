@@ -7,6 +7,7 @@ import PageShell from '@/components/PageShell';
 import FilterPills from '@/components/FilterPills';
 import ResourceRow from '@/components/ResourceRow';
 import UploadResourceDrawer from '@/components/UploadResourceDrawer';
+import RequestMaterialDrawer from '@/components/RequestMaterialDrawer';
 import { useLibrary } from '@/components/MockLibraryProvider';
 import { useSession } from '@/components/MockSessionProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
@@ -20,6 +21,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
   const { session } = useSession();
   const { courses, resources: allResources } = useLibrary();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
 
   const course = courses.find((c) => c.code === courseCode);
   const resources = useMemo(
@@ -27,11 +29,15 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
     [allResources, courseCode]
   );
 
-  // Real scope check (design doc §3): a rep can only write within the
-  // level(s) they're assigned — never trust the client for real enforcement,
-  // but this mirrors what the eventual server-side check will gate.
+  // Real scope check (design doc §3): super-admins can write anywhere; a rep
+  // can only write within the level(s) they're assigned — never trust the
+  // client for real enforcement, but this mirrors what the eventual
+  // server-side check will gate.
   const canUpload = Boolean(
-    session && course && session.role === 'REP' && session.level === course.level
+    session &&
+      course &&
+      (session.role === 'SUPER_ADMIN' ||
+        (session.role === 'REP' && session.level === course.level))
   );
 
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -115,10 +121,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
       </div>
 
       <div className="mt-6 pt-5 border-t border-[var(--border)]">
-        {/* TODO(backend): POST /api/requests with { courseCode, note } */}
         <button
           type="button"
-          onClick={() => {}}
+          onClick={() => setRequestOpen(true)}
           className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] underline"
         >
           Can&apos;t find what you&apos;re looking for? Request material
@@ -132,6 +137,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
           onClose={() => setUploadOpen(false)}
         />
       )}
+
+      <RequestMaterialDrawer
+        courseCode={course.code}
+        open={requestOpen}
+        onClose={() => setRequestOpen(false)}
+      />
     </PageShell>
   );
 }

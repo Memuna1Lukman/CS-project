@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MailCheck } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import { useSession } from '@/components/MockSessionProvider';
-import { MOCK_USERS } from '@/lib/mockData';
+import { useLibrary } from '@/components/MockLibraryProvider';
 import type { MockUser } from '@/types/resource';
 
 const EMAIL_DOMAIN = '@st.knust.edu.gh';
@@ -13,9 +13,11 @@ const EMAIL_DOMAIN = '@st.knust.edu.gh';
 export default function SignInPage() {
   const router = useRouter();
   const { signIn } = useSession();
+  const { users } = useLibrary();
   const [email, setEmail] = useState('');
   const [touched, setTouched] = useState(false);
   const [sent, setSent] = useState(false);
+  const [inactiveError, setInactiveError] = useState(false);
 
   const trimmed = email.trim();
   const isValid = trimmed.toLowerCase().endsWith(EMAIL_DOMAIN) && trimmed.length > EMAIL_DOMAIN.length;
@@ -27,14 +29,21 @@ export default function SignInPage() {
 
     // TODO(backend): wire to Auth.js Email provider at /api/auth/* (see Appendix B) —
     // sends a real magic link / OTP to the KNUST mailbox instead of this mock confirmation.
+    setInactiveError(false);
     setSent(true);
   };
 
   const handleOpenLink = () => {
     const normalized = trimmed.toLowerCase();
-    const found = MOCK_USERS.find((u) => u.email.toLowerCase() === normalized);
     // TODO(backend): replace this lookup with a real Auth.js magic-link
     // callback + Prisma User lookup (see design doc §4, Appendix B).
+    const found = users.find((u) => u.email.toLowerCase() === normalized);
+
+    if (found && found.status === 'INACTIVE') {
+      setInactiveError(true);
+      return;
+    }
+
     const user: MockUser = found ?? {
       email: normalized,
       name: normalized.split('@')[0],
@@ -44,7 +53,7 @@ export default function SignInPage() {
       status: 'ACTIVE',
     };
     signIn(user);
-    router.push('/');
+    router.push(user.indexNumber ? '/' : '/onboarding');
   };
 
   if (sent) {
@@ -62,6 +71,13 @@ export default function SignInPage() {
             Open it on this device to continue.
           </p>
 
+          {inactiveError && (
+            <p className="mt-4 text-sm text-[var(--text-primary)]" role="alert">
+              This account has been deactivated. Contact a department admin if you believe
+              this is a mistake.
+            </p>
+          )}
+
           {/* TODO(backend): demo-only shortcut — remove once Auth.js magic-link
               callback (/api/auth/callback/email) actually completes sign-in. */}
           <button
@@ -74,7 +90,10 @@ export default function SignInPage() {
 
           <button
             type="button"
-            onClick={() => setSent(false)}
+            onClick={() => {
+              setSent(false);
+              setInactiveError(false);
+            }}
             className="mt-2.5 w-full min-h-11 px-4 rounded-lg text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           >
             Use a different email

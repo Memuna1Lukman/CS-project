@@ -15,9 +15,9 @@ const ROLE_LABELS: Record<Role, string> = {
 const ROLES: Role[] = ['STUDENT', 'REP', 'SUPER_ADMIN'];
 const LEVELS: Level[] = [100, 200, 300, 400];
 
-const QUICK_LINKS = [
-  { href: '/my-uploads', label: 'My uploads', note: 'Rep view (Stage 5)' },
-  { href: '/admin', label: 'Admin', note: 'Super-admin view (Stage 6)' },
+const QUICK_LINKS: { href: string; label: string; note: string; roles: Role[] }[] = [
+  { href: '/my-uploads', label: 'My uploads', note: 'Rep view (Stage 5)', roles: ['REP', 'SUPER_ADMIN'] },
+  { href: '/admin', label: 'Admin', note: 'Super-admin view (Stage 6)', roles: ['SUPER_ADMIN'] },
 ];
 
 export default function ProfilePage() {
@@ -140,22 +140,26 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
-        Other screens (temporary scaffold links)
-      </p>
-      <ul className="space-y-2">
-        {QUICK_LINKS.map((link) => (
-          <li key={link.href}>
-            <Link
-              href={link.href}
-              className="flex items-center justify-between min-h-11 px-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
-            >
-              {link.label}
-              <span className="text-xs font-normal text-[var(--text-muted)]">{link.note}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {QUICK_LINKS.some((link) => link.roles.includes(session.role)) && (
+        <>
+          <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
+            Other screens (temporary scaffold links)
+          </p>
+          <ul className="space-y-2">
+            {QUICK_LINKS.filter((link) => link.roles.includes(session.role)).map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="flex items-center justify-between min-h-11 px-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
+                >
+                  {link.label}
+                  <span className="text-xs font-normal text-[var(--text-muted)]">{link.note}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </PageShell>
   );
 }

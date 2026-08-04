@@ -23,6 +23,7 @@ interface LibraryContextValue {
   addResource: (input: ResourceInput) => void;
   removeResource: (id: string) => void;
   updateUser: (email: string, patch: Partial<Pick<MockUser, 'role' | 'level' | 'status'>>) => void;
+  addRequest: (input: { courseCode?: string; note: string }) => void;
   updateRequestStatus: (id: string, status: RequestStatus) => void;
 }
 
@@ -87,6 +88,16 @@ export function MockLibraryProvider({ children }: { children: React.ReactNode })
     setUsers((prev) => prev.map((u) => (u.email === email ? { ...u, ...patch } : u)));
   };
 
+  const addRequest = (input: { courseCode?: string; note: string }) => {
+    const request: MaterialRequest = {
+      id: `req-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+      courseCode: input.courseCode,
+      note: input.note,
+      status: 'OPEN',
+    };
+    setRequests((prev) => [request, ...prev]);
+  };
+
   const updateRequestStatus = (id: string, status: RequestStatus) => {
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
   };
@@ -101,6 +112,7 @@ export function MockLibraryProvider({ children }: { children: React.ReactNode })
     addResource,
     removeResource,
     updateUser,
+    addRequest,
     updateRequestStatus,
   };
 

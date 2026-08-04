@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen, Inbox, Users } from 'lucide-react';
+import { BookOpen, Inbox, ShieldAlert, Users } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import StatCard from '@/components/StatCard';
 import { useLibrary } from '@/components/MockLibraryProvider';
@@ -11,6 +11,7 @@ const ADMIN_SECTIONS = [
   { href: '/admin/courses', label: 'Manage courses', icon: BookOpen },
   { href: '/admin/users', label: 'Manage users / reps', icon: Users },
   { href: '/admin/requests', label: 'Material requests inbox', icon: Inbox },
+  { href: '/admin/resources', label: 'Moderate resources', icon: ShieldAlert },
 ];
 
 export default function AdminOverviewPage() {

@@ -4,15 +4,17 @@ import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import { useLibrary } from '@/components/MockLibraryProvider';
-import { useSession } from '@/components/MockSessionProvider';
+import { useRequireRole } from '@/components/MockSessionProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 
 // TODO(backend): GET /api/courses/:code/resources filtered by uploadedById,
 // DELETE /api/resources/:id for soft-delete (rep/admin, scope-checked — see
 // Appendix B). This reads/writes the in-memory MockLibraryProvider instead.
 export default function MyUploadsPage() {
-  const { session } = useSession();
+  const { session, permitted } = useRequireRole(['REP', 'SUPER_ADMIN']);
   const { resources, removeResource } = useLibrary();
+
+  if (!permitted) return null;
 
   const myUploads = resources.filter(
     (r) => r.status === 'ACTIVE' && session && r.uploadedBy === session.email
