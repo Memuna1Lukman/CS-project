@@ -46,9 +46,19 @@ export interface Resource {
   type: ResourceType;
   academicYear: string;
   fileSize?: string;
+  fileName?: string;
+  mimeType?: string;
+  // Mock stand-in for the R2 object: the uploaded file's bytes as a base64
+  // data URL so downloads work and survive refresh via localStorage.
+  // TODO(backend): replace with storageKey + GET /api/resources/:id/download.
+  fileDataUrl?: string;
   externalUrl?: string;
   status: ResourceStatus;
   downloadCount: number;
   uploadedBy: string;
   createdAt: string;
 }
+
+// What a provider mutation reports back to the UI. Mirrors the eventual API
+// response shape: server-side checks can fail even when the UI gate passed.
+export type MutationResult = { ok: true } | { ok: false; error: string };

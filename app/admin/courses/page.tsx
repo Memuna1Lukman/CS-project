@@ -6,6 +6,7 @@ import PageShell from '@/components/PageShell';
 import Drawer from '@/components/Drawer';
 import { useLibrary } from '@/components/MockLibraryProvider';
 import { useRequireRole } from '@/components/MockSessionProvider';
+import { useToast } from '@/components/ToastProvider';
 import type { Course, Level, Semester } from '@/types/resource';
 
 const LEVELS: Level[] = [100, 200, 300, 400];
@@ -13,6 +14,7 @@ const SEMESTERS: Semester[] = [1, 2];
 
 function EditCourseForm({ course, onDone }: { course: Course; onDone: () => void }) {
   const { updateCourse } = useLibrary();
+  const toast = useToast();
   const [title, setTitle] = useState(course.title);
   const [lecturer, setLecturer] = useState(course.lecturer ?? '');
   const [level, setLevel] = useState<Level>(course.level);
@@ -20,12 +22,17 @@ function EditCourseForm({ course, onDone }: { course: Course; onDone: () => void
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    updateCourse(course.code, {
+    const result = updateCourse(course.code, {
       title: title.trim() || course.title,
       lecturer: lecturer.trim() || undefined,
       level,
       semester,
     });
+    if (!result.ok) {
+      toast(result.error, 'error');
+      return;
+    }
+    toast(`Saved ${course.code}.`);
     onDone();
   };
 
@@ -35,21 +42,21 @@ function EditCourseForm({ course, onDone }: { course: Course; onDone: () => void
         aria-label="Course title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full h-9 px-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
+        className="w-full h-9 px-3 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
       />
       <input
         aria-label="Lecturer"
         value={lecturer}
         onChange={(e) => setLecturer(e.target.value)}
         placeholder="Lecturer (optional)"
-        className="w-full h-9 px-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
+        className="w-full h-9 px-3 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
       />
       <div className="flex gap-2">
         <select
           aria-label="Level"
           value={level}
           onChange={(e) => setLevel(Number(e.target.value) as Level)}
-          className="flex-1 h-9 px-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
+          className="flex-1 h-9 px-2 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
         >
           {LEVELS.map((l) => (
             <option key={l} value={l}>
@@ -61,7 +68,7 @@ function EditCourseForm({ course, onDone }: { course: Course; onDone: () => void
           aria-label="Semester"
           value={semester}
           onChange={(e) => setSemester(Number(e.target.value) as Semester)}
-          className="flex-1 h-9 px-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
+          className="flex-1 h-9 px-2 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
         >
           {SEMESTERS.map((s) => (
             <option key={s} value={s}>
@@ -73,14 +80,14 @@ function EditCourseForm({ course, onDone }: { course: Course; onDone: () => void
       <div className="flex gap-2">
         <button
           type="submit"
-          className="flex-1 min-h-9 rounded-lg text-xs font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
+          className="flex-1 min-h-9 rounded-full text-xs font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
         >
           Save
         </button>
         <button
           type="button"
           onClick={onDone}
-          className="flex-1 min-h-9 rounded-lg text-xs font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
+          className="flex-1 min-h-9 rounded-full text-xs font-semibold border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
         >
           Cancel
         </button>
@@ -91,6 +98,7 @@ function EditCourseForm({ course, onDone }: { course: Course; onDone: () => void
 
 function AddCourseForm({ onDone }: { onDone: () => void }) {
   const { addCourse } = useLibrary();
+  const toast = useToast();
   const [code, setCode] = useState('');
   const [title, setTitle] = useState('');
   const [lecturer, setLecturer] = useState('');
@@ -105,13 +113,18 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
     setTouched(true);
     if (!isValid) return;
 
-    addCourse({
+    const result = addCourse({
       code: code.trim(),
       title: title.trim(),
       lecturer: lecturer.trim() || undefined,
       level,
       semester,
     });
+    if (!result.ok) {
+      toast(result.error, 'error');
+      return;
+    }
+    toast(`Added ${code.trim()}.`);
     onDone();
   };
 
@@ -126,7 +139,7 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="e.g. CSM 161"
-          className="w-full h-11 px-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
+          className="w-full h-11 px-3 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
         />
       </div>
       <div>
@@ -138,7 +151,7 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. Introduction to Robotics"
-          className="w-full h-11 px-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
+          className="w-full h-11 px-3 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
         />
       </div>
       <div>
@@ -149,7 +162,7 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
           id="new-course-lecturer"
           value={lecturer}
           onChange={(e) => setLecturer(e.target.value)}
-          className="w-full h-11 px-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
+          className="w-full h-11 px-3 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
         />
       </div>
       <div className="flex gap-3">
@@ -161,7 +174,7 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
             id="new-course-level"
             value={level}
             onChange={(e) => setLevel(Number(e.target.value) as Level)}
-            className="w-full h-11 px-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
+            className="w-full h-11 px-3 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
           >
             {LEVELS.map((l) => (
               <option key={l} value={l}>
@@ -178,7 +191,7 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
             id="new-course-semester"
             value={semester}
             onChange={(e) => setSemester(Number(e.target.value) as Semester)}
-            className="w-full h-11 px-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
+            className="w-full h-11 px-3 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] text-sm outline-none focus:border-[var(--focus)]"
           >
             {SEMESTERS.map((s) => (
               <option key={s} value={s}>
@@ -193,7 +206,7 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
       )}
       <button
         type="submit"
-        className="w-full min-h-11 px-4 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold"
+        className="w-full min-h-11 px-4 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold"
       >
         Add course
       </button>
@@ -213,11 +226,11 @@ export default function AdminCoursesPage() {
   return (
     <PageShell>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Manage courses</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Manage courses</h1>
         <button
           type="button"
           onClick={() => setAddOpen(true)}
-          className="shrink-0 flex items-center gap-1.5 min-h-11 px-3.5 rounded-lg text-xs font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
+          className="shrink-0 flex items-center gap-1.5 min-h-11 px-3.5 rounded-full text-xs font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
         >
           <Plus className="w-3.5 h-3.5" aria-hidden="true" />
           Add course
@@ -239,11 +252,11 @@ export default function AdminCoursesPage() {
               {levelCourses.map((course) => (
                 <div
                   key={course.code}
-                  className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 shadow-[0_1px_2px_var(--shadow)]"
+                  className="bg-[var(--surface)] rounded-2xl p-5 shadow-[0_1px_3px_var(--shadow)]"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--text-subtle)]">
+                      <span className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--text-subtle)]">
                         {course.code}
                       </span>
                       <p className="mt-1.5 text-sm font-bold text-[var(--text-primary)] truncate">
@@ -259,7 +272,7 @@ export default function AdminCoursesPage() {
                       onClick={() => setEditingCode(editingCode === course.code ? null : course.code)}
                       aria-label={`Edit ${course.code}`}
                       aria-expanded={editingCode === course.code}
-                      className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
+                      className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>

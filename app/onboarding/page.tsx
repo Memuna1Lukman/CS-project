@@ -26,8 +26,8 @@ export default function OnboardingPage() {
 
   return (
     <PageShell>
-      <div className="max-w-sm mx-auto mt-6 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-[0_2px_6px_var(--shadow)]">
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">Welcome</h1>
+      <div className="max-w-sm mx-auto mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Welcome</h1>
         <p className="mt-1.5 text-sm text-[var(--text-muted)]">
           Enter your index number so we can route you to the right level.
         </p>
@@ -51,7 +51,7 @@ export default function OnboardingPage() {
             placeholder="e.g. 8412621"
             aria-invalid={touched && !isValid}
             aria-describedby="index-number-error"
-            className="w-full h-11 px-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)] tabular-nums"
+            className="w-full h-11 px-3 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)] tabular-nums"
           />
           {touched && !isValid && (
             <p id="index-number-error" className="mt-1.5 text-xs text-[var(--text-muted)]">
@@ -61,7 +61,7 @@ export default function OnboardingPage() {
 
           <button
             type="submit"
-            className="mt-5 w-full min-h-11 px-4 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold disabled:opacity-50"
+            className="mt-5 w-full min-h-11 px-4 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold disabled:opacity-50"
             disabled={touched && !isValid}
           >
             Continue

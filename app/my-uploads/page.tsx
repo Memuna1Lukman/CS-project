@@ -5,7 +5,8 @@ import { Trash2 } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import { useLibrary } from '@/components/MockLibraryProvider';
 import { useRequireRole } from '@/components/MockSessionProvider';
-import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
+import { useToast } from '@/components/ToastProvider';
+import { RESOURCE_TYPE_BADGE_CLASSES, RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 
 // TODO(backend): GET /api/courses/:code/resources filtered by uploadedById,
 // DELETE /api/resources/:id for soft-delete (rep/admin, scope-checked — see
@@ -13,8 +14,15 @@ import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 export default function MyUploadsPage() {
   const { session, permitted } = useRequireRole(['REP', 'SUPER_ADMIN']);
   const { resources, removeResource } = useLibrary();
+  const toast = useToast();
 
   if (!permitted) return null;
+
+  const handleRemove = (id: string, title: string) => {
+    const result = removeResource(id);
+    if (result.ok) toast(`Removed "${title}".`);
+    else toast(result.error, 'error');
+  };
 
   const myUploads = resources.filter(
     (r) => r.status === 'ACTIVE' && session && r.uploadedBy === session.email
@@ -29,7 +37,7 @@ export default function MyUploadsPage() {
 
   return (
     <PageShell>
-      <h1 className="text-2xl font-bold text-[var(--text-primary)]">My uploads</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">My uploads</h1>
       <p className="mt-1 text-sm text-[var(--text-muted)]">
         Resources you&apos;ve uploaded this session, grouped by course.
       </p>
@@ -49,7 +57,7 @@ export default function MyUploadsPage() {
           {Array.from(byCourse.entries()).map(([courseCode, uploads]) => (
             <section key={courseCode}>
               <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)] mb-3">
-                <span className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--text-subtle)]">
+                <span className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--text-subtle)]">
                   {courseCode}
                 </span>
                 {uploads[0].courseTitle}
@@ -58,9 +66,9 @@ export default function MyUploadsPage() {
                 {uploads.map((resource) => (
                   <div
                     key={resource.id}
-                    className="flex items-center gap-2 sm:gap-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl px-3 py-2.5 shadow-[0_1px_2px_var(--shadow)]"
+                    className="flex items-center gap-2 sm:gap-3 bg-[var(--surface)] rounded-2xl px-3.5 py-3 shadow-[0_1px_3px_var(--shadow)]"
                   >
-                    <span className="hidden sm:inline-block shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]">
+                    <span className={`hidden sm:inline-flex justify-center shrink-0 w-[108px] text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${RESOURCE_TYPE_BADGE_CLASSES[resource.type]}`}>
                       {RESOURCE_TYPE_LABELS[resource.type]}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -75,9 +83,9 @@ export default function MyUploadsPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => removeResource(resource.id)}
+                      onClick={() => handleRemove(resource.id, resource.title)}
                       aria-label={`Remove ${resource.title}`}
-                      className="shrink-0 flex items-center gap-1.5 min-h-11 px-3 rounded-lg text-xs font-semibold text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface-3)]"
+                      className="shrink-0 flex items-center gap-1.5 min-h-11 px-3 rounded-full text-xs font-semibold text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface-3)]"
                     >
                       <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                       Remove

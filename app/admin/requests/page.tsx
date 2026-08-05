@@ -3,6 +3,7 @@
 import PageShell from '@/components/PageShell';
 import { useLibrary } from '@/components/MockLibraryProvider';
 import { useRequireRole } from '@/components/MockSessionProvider';
+import { useToast } from '@/components/ToastProvider';
 import type { RequestStatus } from '@/types/resource';
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
@@ -17,12 +18,19 @@ const STATUS_ACTIONS: RequestStatus[] = ['OPEN', 'FULFILLED', 'DISMISSED'];
 export default function AdminRequestsPage() {
   const { permitted } = useRequireRole(['SUPER_ADMIN']);
   const { requests, updateRequestStatus } = useLibrary();
+  const toast = useToast();
 
   if (!permitted) return null;
 
+  const handleStatus = (id: string, status: RequestStatus) => {
+    const result = updateRequestStatus(id, status);
+    if (result.ok) toast(`Request marked ${STATUS_LABELS[status].toLowerCase()}.`);
+    else toast(result.error, 'error');
+  };
+
   return (
     <PageShell>
-      <h1 className="text-2xl font-bold text-[var(--text-primary)]">Material requests</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Material requests</h1>
       <p className="mt-1 text-sm text-[var(--text-muted)]">
         Students&apos; &quot;I can&apos;t find this&quot; requests — your coverage radar.
       </p>
@@ -36,12 +44,12 @@ export default function AdminRequestsPage() {
           {requests.map((request) => (
             <div
               key={request.id}
-              className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 shadow-[0_1px_2px_var(--shadow)]"
+              className="bg-[var(--surface)] rounded-2xl p-5 shadow-[0_1px_3px_var(--shadow)]"
             >
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
                   {request.courseCode && (
-                    <span className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--text-subtle)]">
+                    <span className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--text-subtle)]">
                       {request.courseCode}
                     </span>
                   )}
@@ -64,8 +72,8 @@ export default function AdminRequestsPage() {
                   <button
                     key={status}
                     type="button"
-                    onClick={() => updateRequestStatus(request.id, status)}
-                    className="min-h-9 px-3 rounded-lg text-xs font-semibold border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
+                    onClick={() => handleStatus(request.id, status)}
+                    className="min-h-9 px-3 rounded-full text-xs font-semibold border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
                   >
                     Mark {STATUS_LABELS[status]}
                   </button>

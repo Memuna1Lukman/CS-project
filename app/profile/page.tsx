@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { LogOut, Mail, Hash, GraduationCap, ShieldCheck, Wand2 } from 'lucide-react';
+import { LogOut, Mail, Hash, GraduationCap, RotateCcw, ShieldCheck, Upload, Wand2 } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import { useSession } from '@/components/MockSessionProvider';
+import { useLibrary } from '@/components/MockLibraryProvider';
+import { useToast } from '@/components/ToastProvider';
 import type { Level, Role } from '@/types/resource';
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -15,13 +17,10 @@ const ROLE_LABELS: Record<Role, string> = {
 const ROLES: Role[] = ['STUDENT', 'REP', 'SUPER_ADMIN'];
 const LEVELS: Level[] = [100, 200, 300, 400];
 
-const QUICK_LINKS: { href: string; label: string; note: string; roles: Role[] }[] = [
-  { href: '/my-uploads', label: 'My uploads', note: 'Rep view (Stage 5)', roles: ['REP', 'SUPER_ADMIN'] },
-  { href: '/admin', label: 'Admin', note: 'Super-admin view (Stage 6)', roles: ['SUPER_ADMIN'] },
-];
-
 export default function ProfilePage() {
   const { session, signOut, updateSession } = useSession();
+  const { resetToDefaults } = useLibrary();
+  const toast = useToast();
 
   // MockSessionProvider redirects to /sign-in before this page can render
   // without a session, but guard for TypeScript's benefit.
@@ -29,9 +28,9 @@ export default function ProfilePage() {
 
   return (
     <PageShell>
-      <h1 className="text-2xl font-bold text-[var(--text-primary)]">Profile</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Profile</h1>
 
-      <div className="mt-4 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 shadow-[0_2px_6px_var(--shadow)]">
+      <div className="mt-4 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 shrink-0 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] flex items-center justify-center font-bold text-lg">
             {session.name.charAt(0).toUpperCase()}
@@ -74,14 +73,41 @@ export default function ProfilePage() {
         <button
           type="button"
           onClick={signOut}
-          className="mt-5 w-full flex items-center justify-center gap-2 min-h-11 px-4 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
+          className="mt-5 w-full flex items-center justify-center gap-2 min-h-11 px-4 rounded-full bg-[var(--surface-2)] border border-transparent text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
         >
           <LogOut className="w-4 h-4" aria-hidden="true" />
           Sign out
         </button>
       </div>
 
-      <div className="mt-6 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 shadow-[0_2px_6px_var(--shadow)]">
+      {(session.role === 'REP' || session.role === 'SUPER_ADMIN') && (
+        <nav aria-label="Role tools" className="mt-6">
+          <ul className="space-y-2">
+            <li>
+              <Link
+                href="/my-uploads"
+                className="flex items-center gap-3 min-h-11 px-4 rounded-2xl bg-[var(--surface)] shadow-[0_1px_3px_var(--shadow)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
+              >
+                <Upload className="w-4 h-4 text-[var(--text-subtle)]" aria-hidden="true" />
+                My uploads
+              </Link>
+            </li>
+            {session.role === 'SUPER_ADMIN' && (
+              <li>
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-3 min-h-11 px-4 rounded-2xl bg-[var(--surface)] shadow-[0_1px_3px_var(--shadow)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
+                >
+                  <ShieldCheck className="w-4 h-4 text-[var(--text-subtle)]" aria-hidden="true" />
+                  Admin
+                </Link>
+              </li>
+            )}
+          </ul>
+        </nav>
+      )}
+
+      <div className="mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
         <div className="flex items-center gap-2">
           <Wand2 className="w-4 h-4 text-[var(--text-subtle)]" aria-hidden="true" />
           <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
@@ -140,26 +166,28 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {QUICK_LINKS.some((link) => link.roles.includes(session.role)) && (
-        <>
-          <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
-            Other screens (temporary scaffold links)
+      <div className="mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
+        <div className="flex items-center gap-2">
+          <RotateCcw className="w-4 h-4 text-[var(--text-subtle)]" aria-hidden="true" />
+          <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+            Demo: reset data
           </p>
-          <ul className="space-y-2">
-            {QUICK_LINKS.filter((link) => link.roles.includes(session.role)).map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="flex items-center justify-between min-h-11 px-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
-                >
-                  {link.label}
-                  <span className="text-xs font-normal text-[var(--text-muted)]">{link.note}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+        </div>
+        <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+          Discards every upload, edit, request, and user change made in this demo and
+          restores the seeded defaults.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            resetToDefaults();
+            toast('Demo data reset to defaults.');
+          }}
+          className="mt-4 min-h-11 px-4 rounded-full bg-[var(--surface-2)] border border-transparent text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
+        >
+          Reset demo data
+        </button>
+      </div>
     </PageShell>
   );
 }

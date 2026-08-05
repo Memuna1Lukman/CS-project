@@ -67,7 +67,7 @@ export default function Drawer({ open, onClose, title, children }: DrawerProps) 
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-[var(--surface)] border border-[var(--border)] rounded-t-2xl sm:rounded-2xl shadow-[0_8px_30px_var(--shadow)] p-5"
+        className="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-[var(--surface)] rounded-t-3xl sm:rounded-3xl shadow-[0_8px_30px_var(--shadow)] p-6"
       >
         <div className="flex items-center justify-between">
           <h2 id={titleId} className="text-lg font-bold text-[var(--text-primary)]">

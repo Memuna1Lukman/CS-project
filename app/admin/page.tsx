@@ -25,7 +25,7 @@ export default function AdminOverviewPage() {
 
   return (
     <PageShell>
-      <h1 className="text-2xl font-bold text-[var(--text-primary)]">Admin</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Admin</h1>
       <p className="mt-1 text-sm text-[var(--text-muted)]">
         Department overview for super-admins.
       </p>
@@ -42,7 +42,7 @@ export default function AdminOverviewPage() {
           <li key={section.href}>
             <Link
               href={section.href}
-              className="flex items-center gap-3 min-h-11 px-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
+              className="flex items-center gap-3 min-h-11 px-4 rounded-2xl bg-[var(--surface)] shadow-[0_1px_3px_var(--shadow)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-3)]"
             >
               <section.icon className="w-4 h-4 text-[var(--text-subtle)]" aria-hidden="true" />
               {section.label}

@@ -27,7 +27,7 @@ export default function ThemeToggle() {
       <button
         type="button"
         aria-label="Toggle theme"
-        className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
+        className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-[var(--surface)] shadow-[0_1px_2px_var(--shadow)] text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
       >
         <span className="w-5 h-5" />
       </button>
@@ -40,7 +40,7 @@ export default function ThemeToggle() {
       onClick={toggle}
       aria-pressed={theme === 'dark'}
       aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
+      className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-[var(--surface)] shadow-[0_1px_2px_var(--shadow)] text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
     >
       {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
     </button>

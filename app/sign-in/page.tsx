@@ -59,11 +59,11 @@ export default function SignInPage() {
   if (sent) {
     return (
       <PageShell>
-        <div className="max-w-sm mx-auto mt-6 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-[0_2px_6px_var(--shadow)] text-center">
+        <div className="max-w-sm mx-auto mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)] text-center">
           <div className="mx-auto w-12 h-12 rounded-full bg-[var(--accent-subtle)] flex items-center justify-center">
             <MailCheck className="w-6 h-6 text-[var(--text-primary)]" aria-hidden="true" />
           </div>
-          <h1 className="mt-4 text-xl font-bold text-[var(--text-primary)]">
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--text-primary)]">
             Check your KNUST inbox
           </h1>
           <p className="mt-1.5 text-sm text-[var(--text-muted)]">
@@ -83,7 +83,7 @@ export default function SignInPage() {
           <button
             type="button"
             onClick={handleOpenLink}
-            className="mt-5 w-full min-h-11 px-4 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold"
+            className="mt-5 w-full min-h-11 px-4 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold"
           >
             Open the link (demo)
           </button>
@@ -94,7 +94,7 @@ export default function SignInPage() {
               setSent(false);
               setInactiveError(false);
             }}
-            className="mt-2.5 w-full min-h-11 px-4 rounded-lg text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="mt-2.5 w-full min-h-11 px-4 rounded-full text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           >
             Use a different email
           </button>
@@ -105,8 +105,8 @@ export default function SignInPage() {
 
   return (
     <PageShell>
-      <div className="max-w-sm mx-auto mt-6 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 shadow-[0_2px_6px_var(--shadow)]">
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">Sign in</h1>
+      <div className="max-w-sm mx-auto mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Sign in</h1>
         <p className="mt-1.5 text-sm text-[var(--text-muted)]">
           Sign in with your KNUST student email — no password needed.
         </p>
@@ -129,7 +129,7 @@ export default function SignInPage() {
             placeholder="yourname@st.knust.edu.gh"
             aria-invalid={touched && !isValid}
             aria-describedby="knust-email-hint"
-            className="w-full h-11 px-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
+            className="w-full h-11 px-3 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
           />
           <p
             id="knust-email-hint"
@@ -142,7 +142,7 @@ export default function SignInPage() {
 
           <button
             type="submit"
-            className="mt-5 w-full min-h-11 px-4 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold disabled:opacity-50"
+            className="mt-5 w-full min-h-11 px-4 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold disabled:opacity-50"
             disabled={touched && !isValid}
           >
             Send magic link

@@ -9,23 +9,24 @@ import { Level, Semester } from '@/types/resource';
 import { useSession } from '@/components/MockSessionProvider';
 import { useLibrary } from '@/components/MockLibraryProvider';
 
-// TODO(backend): GET /api/courses?level=&semester= instead of filtering
-// mock courses client-side.
+// TODO(backend): GET /api/courses?level=&semester= — server filters by the
+// session's read scope (design doc §3); the client no longer needs to.
 export default function LibraryPage() {
   const { session } = useSession();
   const { courses } = useLibrary();
-  const [activeLevel, setActiveLevel] = useState<Level>(session?.level ?? 100);
+  const isAdmin = session?.role === 'SUPER_ADMIN';
+  const [adminLevel, setAdminLevel] = useState<Level>(session?.level ?? 100);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Students (and any role) land on their own level by default. Design doc §3:
-  // students can still read every level, so this only sets the default — the
-  // Sidebar level switcher below stays fully interactive.
+  // Only super-admins can switch levels (design doc §3: student/rep reads are
+  // locked to their own level). Re-sync the admin switcher's default when the
+  // underlying level changes (e.g. the demo role switcher on /profile).
   useEffect(() => {
-    if (session) setActiveLevel(session.level);
-    // Only re-sync when the underlying level changes (e.g. the demo role
-    // switcher on /profile), not on every render.
+    if (session) setAdminLevel(session.level);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.level]);
+
+  const activeLevel: Level = isAdmin ? adminLevel : session?.level ?? 100;
 
   const coursesByLevel = useMemo(
     () => courses.filter((course) => course.level === activeLevel),
@@ -43,21 +44,19 @@ export default function LibraryPage() {
     <div className="min-h-screen flex flex-col bg-[var(--bg)]">
       <TopBar onToggleSidebar={() => setSidebarOpen((v) => !v)} />
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 items-start">
         <Sidebar
           activeLevel={activeLevel}
-          onSelectLevel={setActiveLevel}
+          onSelectLevel={isAdmin ? setAdminLevel : () => {}}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
 
-        <main className="flex-1 p-4 sm:p-6">
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
+        <main className="flex-1 min-w-0 p-4 sm:p-6">
+          <p className="text-sm text-[var(--text-muted)]">Browse courses and their resources.</p>
+          <h1 className="mt-0.5 text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
             Level {activeLevel}
           </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-0.5">
-            Browse courses and their resources.
-          </p>
 
           {coursesByLevel.length === 0 ? (
             <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
@@ -65,7 +64,7 @@ export default function LibraryPage() {
             </div>
           ) : (
             <>
-              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full sm:max-w-md">
+              <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full sm:max-w-lg">
                 <StatCard label="Courses" value={coursesByLevel.length} />
                 <StatCard label="Resources" value={totalResources} />
                 <StatCard label="Semesters" value={semesters.length} />

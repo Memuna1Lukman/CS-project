@@ -80,10 +80,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
 
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className="inline-block font-mono text-[11px] font-semibold px-2 py-1 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)]">
+          <span className="inline-block font-mono text-[11px] font-semibold px-2 py-1 rounded-full bg-[var(--surface-2)] text-[var(--text-muted)]">
             {course.code}
           </span>
-          <h1 className="mt-2.5 text-xl font-bold text-[var(--text-primary)] leading-snug">
+          <h1 className="mt-2.5 text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] leading-snug">
             {course.title}
           </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -95,7 +95,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
           <button
             type="button"
             onClick={() => setUploadOpen(true)}
-            className="shrink-0 flex items-center gap-1.5 min-h-11 px-3.5 rounded-lg text-xs font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
+            className="shrink-0 flex items-center gap-1.5 min-h-11 px-3.5 rounded-full text-xs font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
           >
             <Upload className="w-3.5 h-3.5" aria-hidden="true" />
             Upload material

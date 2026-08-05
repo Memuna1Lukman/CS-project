@@ -1,6 +1,7 @@
 'use client';
 
-import { use, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search as SearchIcon } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import CourseCard from '@/components/CourseCard';
@@ -18,7 +19,7 @@ function ResultTag({
 }) {
   return (
     <div className="flex items-center gap-2 mb-1.5">
-      <span className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--text-subtle)]">
+      <span className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--text-subtle)]">
         {code}
       </span>
       <span className="text-[11px] text-[var(--text-muted)]">
@@ -30,14 +31,17 @@ function ResultTag({
 
 // TODO(backend): wire to GET /api/courses + GET /api/courses/:code/resources
 // (structured search over course code/title, resource title/type/year — see Appendix B)
-export default function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const { q } = use(searchParams);
+export default function SearchPage() {
+  const searchParams = useSearchParams();
+  const q = searchParams.get('q') ?? '';
   const { courses, resources } = useLibrary();
-  const [query, setQuery] = useState(q ?? '');
+  const [query, setQuery] = useState(q);
+
+  // Keep the input in sync when arriving/navigating with a new ?q= (e.g. the
+  // TopBar search), without clobbering further typing on this page.
+  useEffect(() => {
+    setQuery(q);
+  }, [q]);
 
   const trimmed = query.trim().toLowerCase();
 
@@ -65,14 +69,14 @@ export default function SearchPage({
 
   return (
     <PageShell>
-      <h1 className="text-2xl font-bold text-[var(--text-primary)]">Search</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Search</h1>
 
       <form role="search" className="mt-4" onSubmit={(e) => e.preventDefault()}>
         <label htmlFor="search-page-input" className="sr-only">
           Search courses and resources
         </label>
         <div className="relative">
-          <SearchIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-subtle)]" />
+          <SearchIcon className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-subtle)]" />
           <input
             id="search-page-input"
             type="search"
@@ -80,7 +84,7 @@ export default function SearchPage({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by course code, title, or resource..."
-            className="w-full h-11 pl-9 pr-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
+            className="w-full h-11 pl-10 pr-4 rounded-full bg-[var(--surface)] shadow-[0_1px_2px_var(--shadow)] border border-transparent text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
           />
         </div>
       </form>

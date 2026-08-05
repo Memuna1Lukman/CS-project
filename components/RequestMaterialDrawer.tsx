@@ -17,6 +17,7 @@ export default function RequestMaterialDrawer({
   const [note, setNote] = useState('');
   const [touched, setTouched] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isValid = note.trim().length > 0;
 
@@ -24,6 +25,7 @@ export default function RequestMaterialDrawer({
     setNote('');
     setTouched(false);
     setSubmitted(false);
+    setError(null);
   };
 
   const handleClose = () => {
@@ -37,7 +39,12 @@ export default function RequestMaterialDrawer({
     if (!isValid) return;
 
     // TODO(backend): POST /api/requests with { courseCode, note }
-    addRequest({ courseCode, note: note.trim() });
+    const result = addRequest({ courseCode, note: note.trim() });
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setError(null);
     setSubmitted(true);
   };
 
@@ -51,7 +58,7 @@ export default function RequestMaterialDrawer({
           <button
             type="button"
             onClick={handleClose}
-            className="w-full min-h-11 px-4 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-primary)] text-sm font-semibold"
+            className="w-full min-h-11 px-4 rounded-full bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] text-sm font-semibold"
           >
             Close
           </button>
@@ -71,16 +78,21 @@ export default function RequestMaterialDrawer({
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. 2023/2024 past questions"
               rows={3}
-              className="w-full px-3 py-2.5 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
+              className="w-full px-3 py-2.5 rounded-xl bg-[var(--surface-2)] border border-transparent text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none focus:border-[var(--focus)]"
             />
             {touched && !isValid && (
               <p className="mt-1.5 text-xs text-[var(--text-muted)]">Please describe what you need.</p>
+            )}
+            {error && (
+              <p className="mt-1.5 text-xs text-[var(--text-primary)]" role="alert">
+                {error}
+              </p>
             )}
           </div>
 
           <button
             type="submit"
-            className="w-full min-h-11 px-4 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold"
+            className="w-full min-h-11 px-4 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold"
           >
             Send request
           </button>

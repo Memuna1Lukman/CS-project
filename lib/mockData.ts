@@ -27,6 +27,14 @@ function course(code: string) {
   return { code: c.code, title: c.title, level: c.level, semester: c.semester };
 }
 
+// Seed uploads are attributed to the demo users below so rep-scoped flows
+// (/my-uploads, own-upload soft-delete) have real data to show.
+const SEED_UPLOADER_BY_LEVEL: Record<number, string> = {
+  100: 'yaw.darko@st.knust.edu.gh', // Level-100 rep
+  300: 'efua.owusu@st.knust.edu.gh', // Level-300 rep
+};
+const SEED_ADMIN = 'kwabena.asante@st.knust.edu.gh';
+
 let nextId = 1;
 function resource(input: Omit<Resource, 'id' | 'courseTitle' | 'level' | 'semester' | 'status' | 'downloadCount' | 'uploadedBy' | 'createdAt'>): Resource {
   const c = course(input.courseCode);
@@ -37,7 +45,7 @@ function resource(input: Omit<Resource, 'id' | 'courseTitle' | 'level' | 'semest
     semester: c.semester,
     status: 'ACTIVE',
     downloadCount: 0,
-    uploadedBy: 'Course Rep',
+    uploadedBy: SEED_UPLOADER_BY_LEVEL[c.level] ?? SEED_ADMIN,
     createdAt: '2025',
     ...input,
   };
