@@ -1,36 +1,21 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CS Resource Hub backend
 
-## Getting Started
+The database schema and API specified in `CS-Resource-Hub-Design-v1.1.md` are implemented with Prisma, Auth.js, Zod, and Cloudflare R2.
 
-First, run the development server:
+## Local setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Copy `.env.example` to `.env` and replace every placeholder. Use a Neon Postgres connection string for `DATABASE_URL`.
+2. Run `npm run db:generate`, then `npm run db:deploy` to apply the included initial migration.
+3. Run `npm run db:seed` to create the Computer Science department and the 16 current course-catalog entries.
+4. Start the app with `npm run dev`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The API requires a valid magic-link session. Auth.js only accepts addresses ending in `@st.knust.edu.gh`; configure `EMAIL_SERVER_*` with a Resend/Brevo SMTP account. File uploads additionally require the `R2_*` settings. Files are capped at 15 MB and only the whitelisted document formats in `app/api/resources/route.ts` are accepted.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Endpoint summary
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `GET/POST /api/courses`, `GET /api/courses/:code`, `PATCH /api/courses/:id-or-code`
+- `GET /api/courses/:code/resources`, `POST /api/resources`, `PATCH/DELETE /api/resources/:id`
+- `GET /api/resources/:id/download`, `POST/GET /api/requests`, `PATCH /api/requests/:id`
+- `GET/PATCH /api/me`, `GET/PATCH /api/users/:id`, `GET /api/users`, `GET /api/resources?mine=true`, `GET /api/search?q=`, and Auth.js at `/api/auth/*`
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Every endpoint validates input. Reads require an active signed-in student; writes enforce the rep-level scope or super-admin role on the server.

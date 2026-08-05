@@ -38,6 +38,4 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
-
-cs-resource-hub
+next-env.d.ts

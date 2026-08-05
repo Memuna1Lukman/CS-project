@@ -12,95 +12,97 @@ import { useLibrary } from '@/components/MockLibraryProvider';
 import { useSession } from '@/components/MockSessionProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 
-// TODO(backend): GET /api/courses/:code for the header, GET
-// /api/courses/:code/resources?type=&year= for the list below (server-side
-// filtering instead of the client-side filter used here on mock data).
 export default function CourseDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const courseCode = decodeURIComponent(code);
+
   const { session } = useSession();
   const { courses, resources: allResources } = useLibrary();
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [requestOpen, setRequestOpen] = useState(false);
 
-  const course = courses.find((c) => c.code === courseCode);
+  const course = courses.find((c) => c.code.toLowerCase() === courseCode.toLowerCase());
   const resources = useMemo(
-    () => allResources.filter((r) => r.courseCode === courseCode && r.status === 'ACTIVE'),
+    () => allResources.filter((r) => r.courseCode.toLowerCase() === courseCode.toLowerCase() && r.status === 'ACTIVE'),
     [allResources, courseCode]
-  );
-
-  // Real scope check (design doc §3): super-admins can write anywhere; a rep
-  // can only write within the level(s) they're assigned — never trust the
-  // client for real enforcement, but this mirrors what the eventual
-  // server-side check will gate.
-  const canUpload = Boolean(
-    session &&
-      course &&
-      (session.role === 'SUPER_ADMIN' ||
-        (session.role === 'REP' && session.level === course.level))
   );
 
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<string | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+
+  const canUpload =
+    Boolean(course) &&
+    (session?.role === 'SUPER_ADMIN' ||
+      (session?.role === 'REP' && session.level === course?.level));
 
   const typeOptions = useMemo(
     () => Array.from(new Set(resources.map((r) => RESOURCE_TYPE_LABELS[r.type]))),
     [resources]
   );
   const yearOptions = useMemo(
-    () => Array.from(new Set(resources.map((r) => r.academicYear))).sort().reverse(),
+    () =>
+      Array.from(new Set(resources.flatMap((r) => (r.academicYear ? [r.academicYear] : []))))
+        .sort()
+        .reverse(),
     [resources]
   );
 
-  const filteredResources = resources.filter((r) => {
-    if (typeFilter && RESOURCE_TYPE_LABELS[r.type] !== typeFilter) return false;
-    if (yearFilter && r.academicYear !== yearFilter) return false;
-    return true;
-  });
+  const filteredResources = useMemo(
+    () =>
+      resources.filter(
+        (r) =>
+          (!typeFilter || RESOURCE_TYPE_LABELS[r.type] === typeFilter) &&
+          (!yearFilter || r.academicYear === yearFilter)
+      ),
+    [resources, typeFilter, yearFilter]
+  );
 
   if (!course) {
     return (
       <PageShell>
-        <p className="text-sm text-[var(--text-muted)]">Course not found.</p>
-        <Link href="/" className="text-sm font-medium text-[var(--text-primary)] underline mt-2 inline-block">
-          Back to library
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to library
         </Link>
+        <div className="text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
+          Course not found or not in your level scope.
+        </div>
       </PageShell>
     );
   }
 
   return (
     <PageShell>
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to library
-      </Link>
-
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <span className="inline-block font-mono text-[11px] font-semibold px-2 py-1 rounded-full bg-[var(--surface-2)] text-[var(--text-muted)]">
-            {course.code}
-          </span>
-          <h1 className="mt-2.5 text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] leading-snug">
-            {course.title}
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            {course.lecturer ? `${course.lecturer} · ` : ''}Level {course.level} · Semester {course.semester}
-          </p>
-        </div>
-
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to library
+        </Link>
         {canUpload && (
           <button
             type="button"
             onClick={() => setUploadOpen(true)}
-            className="shrink-0 flex items-center gap-1.5 min-h-11 px-3.5 rounded-full text-xs font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
+            className="inline-flex items-center gap-1.5 min-h-10 px-4 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold shadow-sm"
           >
-            <Upload className="w-3.5 h-3.5" aria-hidden="true" />
-            Upload material
+            <Upload className="w-4 h-4" /> Upload material
           </button>
         )}
+      </div>
+
+      <header>
+        <span className="inline-block font-mono text-[11px] font-semibold px-2 py-1 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)]">
+          {course.code}
+        </span>
+        <h1 className="mt-2.5 text-xl font-bold text-[var(--text-primary)] leading-snug">
+          {course.title}
+        </h1>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
+          {course.lecturer ? `${course.lecturer} · ` : ''}Level {course.level} · Semester {course.semester}
+        </p>
       </header>
 
       <div className="mt-6 space-y-2.5">
@@ -109,7 +111,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
       </div>
 
       <div className="mt-5 space-y-2">
-        {filteredResources.length > 0 ? (
+        {filteredResources.length ? (
           filteredResources.map((resource) => (
             <ResourceRow key={resource.id} resource={resource} />
           ))
@@ -146,3 +148,4 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
     </PageShell>
   );
 }
+

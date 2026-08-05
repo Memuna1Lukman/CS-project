@@ -9,8 +9,6 @@ import { Level, Semester } from '@/types/resource';
 import { useSession } from '@/components/MockSessionProvider';
 import { useLibrary } from '@/components/MockLibraryProvider';
 
-// TODO(backend): GET /api/courses?level=&semester= — server filters by the
-// session's read scope (design doc §3); the client no longer needs to.
 export default function LibraryPage() {
   const { session } = useSession();
   const { courses } = useLibrary();
@@ -23,7 +21,6 @@ export default function LibraryPage() {
   // underlying level changes (e.g. the demo role switcher on /profile).
   useEffect(() => {
     if (session) setAdminLevel(session.level);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.level]);
 
   const activeLevel: Level = isAdmin ? adminLevel : session?.level ?? 100;
@@ -71,8 +68,8 @@ export default function LibraryPage() {
               </div>
 
               {semesters.map((semester) => {
-                const courses = coursesByLevel.filter((c) => c.semester === semester);
-                if (courses.length === 0) return null;
+                const coursesInSem = coursesByLevel.filter((c) => c.semester === semester);
+                if (coursesInSem.length === 0) return null;
 
                 return (
                   <section key={semester} className="mt-6">
@@ -80,7 +77,7 @@ export default function LibraryPage() {
                       Semester {semester}
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                      {courses.map((course) => (
+                      {coursesInSem.map((course) => (
                         <CourseCard key={course.code} course={course} />
                       ))}
                     </div>
@@ -94,3 +91,4 @@ export default function LibraryPage() {
     </div>
   );
 }
+
