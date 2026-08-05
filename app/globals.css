@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  /* Surfaces — near-white canvas, floating white cards */
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f1f2f4;
+  --surface-3: #e9eaee;
+
+  /* Top bar melts into the canvas */
+  --topbar-bg: #f4f5f7;
+  --topbar-fg: #1b1c1e;
+
+  /* Text */
+  --text-primary: #1b1c1e;
+  --text-muted: #6e7075;
+  --text-subtle: #9b9da3;
+
+  /* Lines & depth */
+  --border: #ebecef;
+  --focus: #3b82f6;
+  --shadow: rgba(24, 25, 28, 0.07);
+  --scrim: rgba(20, 20, 22, 0.4);
+
+  /* Ink accent — the dark pill from the reference */
+  --accent: #1b1c1e;
+  --accent-fg: #ffffff;
+  --accent-subtle: #ececef;
+
+  /* Resource-type candy tints (strong text on -soft background) */
+  --type-slides: #7c3aed;
+  --type-slides-soft: #f1ebfe;
+  --type-notes: #2563eb;
+  --type-notes-soft: #e8f0fe;
+  --type-past-question: #e11d48;
+  --type-past-question-soft: #fdeaef;
+  --type-lab-manual: #16a34a;
+  --type-lab-manual-soft: #e6f7ec;
+  --type-book: #d97706;
+  --type-book-soft: #fdf1df;
+  --type-other: #52555b;
+  --type-other-soft: #ededf0;
+}
+
+[data-theme="dark"] {
+  --bg: #131417;
+  --surface: #1d1e22;
+  --surface-2: #26272c;
+  --surface-3: #2e2f35;
+
+  --topbar-bg: #131417;
+  --topbar-fg: #f4f4f6;
+
+  --text-primary: #f4f4f6;
+  --text-muted: #a6a8ae;
+  --text-subtle: #75777e;
+
+  --border: #2a2b30;
+  --focus: #6d9bff;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --scrim: rgba(0, 0, 0, 0.6);
+
+  /* Ink pill inverts: near-white pill, dark ink text */
+  --accent: #f4f4f6;
+  --accent-fg: #131417;
+  --accent-subtle: #2a2b31;
+
+  --type-slides: #a78bfa;
+  --type-slides-soft: rgba(167, 139, 250, 0.16);
+  --type-notes: #7aa5f8;
+  --type-notes-soft: rgba(122, 165, 248, 0.16);
+  --type-past-question: #fb7185;
+  --type-past-question-soft: rgba(251, 113, 133, 0.16);
+  --type-lab-manual: #4ade80;
+  --type-lab-manual-soft: rgba(74, 222, 128, 0.16);
+  --type-book: #fbbf24;
+  --type-book-soft: rgba(251, 191, 36, 0.16);
+  --type-other: #b9bbc1;
+  --type-other-soft: rgba(185, 187, 193, 0.14);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

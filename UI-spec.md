@@ -87,10 +87,10 @@ Build these as reusable components; each handles its states and is keyboard-acce
 - Show file size next to every download (students are on limited mobile data).
 
 ## Anti-patterns — never do these
-- ❌ Hardcoded colours anywhere. ❌ Analytics/dashboard content (KPIs, charts, revenue). ❌ A dense/hairline layout. ❌ Pastel text or full pastel backgrounds. ❌ Overusing the accent. ❌ Committing `.env` or secrets. ❌ Building beyond the assigned task.
+- ❌ Analytics/dashboard content (KPIs, charts, revenue). ❌ A dense/hairline layout.  ❌ Overusing the accent. ❌ Committing `.env` or secrets. ❌ Building beyond the assigned task.
 
 ## Definition of done (self-check before finishing)
-- [ ] No hardcoded colours; only tokens used.
+## [ ] No hardcoded colours; only tokens used.
 - [ ] Airy, card-based, soft-shadow look — dark top bar, light sidebar.
 - [ ] Accent used only on pills/buttons as a background with dark text.
 - [ ] Library navigation, not a board or dashboard.
