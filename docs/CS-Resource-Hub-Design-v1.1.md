@@ -3,9 +3,13 @@
 > **Working title — rename to whatever your department prefers.**
 > A centralized, searchable library of academic materials for a single university department, replacing the "search WhatsApp forever" workflow.
 
-**Version:** 1.1 · **Scope:** KNUST Computer Science Department, Levels 100–400
+**Version:** 1.2 · **Scope:** KNUST Computer Science Department, Levels 100–400
 **Team:** 2 founders (super-admins) + course reps (uploaders) · **Build method:** AI agents
 **Budget:** GHS 0 / month (all free tiers)
+
+### Changelog (v1.1 → v1.2)
+- **Reads are now LEVEL-SCOPED (Option B).** A signed-in **Student** or **Course Rep** sees only their **own level's** courses and resources; **Super-Admins** see all levels. Previously reads were open across all levels — that is now changed by design. Writes remain level-scoped for reps. Enforced **server-side**, not just hidden in the UI.
+- All affected sections (Goals, §3 Roles, §4 auth flow, §5 navigation, §8 download, §10 security, §12 search, Appendix B endpoints) updated to match.
 
 ### Changelog (v1.0 → v1.1)
 - **Access is now authenticated, not public.** Students sign in before reading/downloading — a stronger copyright posture and the tutor-requested model.
@@ -29,7 +33,7 @@ Guiding principle: **spend design effort only on decisions that are expensive to
 ## 2. Goals & Non-Goals
 
 ### Goals
-- A signed-in student finds any material for their level in **three taps** (Level → Semester → Course) or one search.
+- A signed-in student finds any material for **their own level** in **three taps** (Level → Semester → Course) or one search. Students and reps see only their own level; super-admins see all levels.
 - **Access is restricted to verified KNUST students** via their institutional email — no passwords stored, and students sign in only once thanks to long-lived sessions.
 - Course reps upload as easily as dropping a file in a group chat — but only within the level they represent.
 - The two founders can moderate, recover, and manage structure without touching every file.
@@ -53,14 +57,32 @@ Everyone signs in with the **same mechanism** — a KNUST student email magic li
 
 The critical distinction: **reps are *scoped uploaders*, not admins.** A rep can only write within the level(s) they represent, so no single rep can damage the whole department, and reps can be rotated out safely each year.
 
-| Role | Sign-in | Can read | Can upload | Scope of write | Manage structure / users |
-|------|---------|----------|------------|----------------|--------------------------|
-| **Student** | KNUST email magic link | ✅ (signed in) | ❌ | — | ❌ |
-| **Course Rep** | KNUST email magic link | ✅ | ✅ | **only courses in their assigned level(s)** | ❌ |
-| **Super-Admin** (2 founders) | KNUST email magic link | ✅ | ✅ | everything | ✅ |
+| Role | Sign-in | Can read | Read scope | Can upload | Scope of write | Manage structure / users |
+|------|---------|----------|------------|------------|----------------|--------------------------|
+| **Student** | KNUST email magic link | ✅ (signed in) | **own level only** | ❌ | — | ❌ |
+| **Course Rep** | KNUST email magic link | ✅ | **own assigned level(s) only** | ✅ | **only courses in their assigned level(s)** | ❌ |
+| **Super-Admin** (2 founders) | KNUST email magic link | ✅ | **all levels** | ✅ | everything | ✅ |
 
-**The permission system in two sentences:**
-> Reading any resource requires a valid session (any role). Writing a resource requires `super_admin`, OR `rep` where the course's level is in that rep's assigned levels.
+**The permission system in three sentences:**
+> Reading requires a valid session **and** that the resource's level is in scope: a **student** or **rep** may read only their **own level('s)**; a **super_admin** reads all levels. Writing a resource requires `super_admin`, OR `rep` where the course's level is in that rep's assigned levels. Both read-scope and write-scope are enforced **server-side** — the client is never trusted.
+
+A user's read scope is derived from their level: a Student's `level` (from their profile/index number), a Rep's `RepScope` level(s), and unrestricted for Super-Admin.
+
+**Read gate (new in v1.2):**
+
+```mermaid
+flowchart TD
+    RD[Read request on a resource or course] --> RR{Role?}
+    RR -->|super_admin| RAllow[Allow - all levels]
+    RR -->|rep| RScope{Resource level in rep's assigned levels?}
+    RR -->|student| SScope{Resource level == student's level?}
+    RScope -->|yes| RAllowA[Allow]
+    RScope -->|no| RDenyA[Deny]
+    SScope -->|yes| RAllowB[Allow]
+    SScope -->|no| RDenyB[Deny]
+```
+
+**Write gate:**
 
 ```mermaid
 flowchart TD
@@ -98,7 +120,7 @@ flowchart TD
 
 - **Provider:** Auth.js **Email (passwordless) provider**, restricted to the `@st.knust.edu.gh` domain at sign-in. Control of a KNUST mailbox = proof of enrolment, since only KNUST issues those addresses.
 - **Sessions:** managed by Auth.js (your "ship securely & fast" choice) — a long `maxAge` with rolling renewal means one sign-in lasts. **No hand-rolled access/refresh tokens**, so none of the token-rotation footguns.
-- **Role resolution:** on login, the email is checked against the rep/admin list; otherwise the session is a plain student. Reps and admins therefore need no separate login.
+- **Role resolution & read scope:** on login, the email is checked against the rep/admin list; otherwise the session is a plain student. The session carries the user's **level scope** — a student's own level, a rep's assigned level(s), or "all" for super-admins — and every read is filtered against it server-side.
 - **Index number:** collected once at first login as profile data (used to auto-route the student to their level and for display/attribution). It is *not* the security gate — the email is.
 
 > Confirm the exact student email domain before building (expected `@st.knust.edu.gh`). If postgraduate or some cohorts use a different sub-domain, allow those too.
@@ -111,16 +133,16 @@ The student's path is a direct reflection of the data model — no folders, just
 
 ```mermaid
 flowchart LR
-    Login["Signed in"] --> Level["Select Level 100-400"]
+    Login["Signed in"] --> Level["Own level (students/reps) — super-admin picks any level"]
     Level --> Semester["Select Semester 1 or 2"]
     Semester --> Courses["Course list: code + title"]
     Courses --> Course["Course page"]
     Course --> Resources["Resources: filter by type and year"]
     Resources --> Download["Download via signed URL"]
-    Login -. "global search" .-> Course
+    Login -. "global search (own level)" .-> Course
 ```
 
-Global search runs across course code, title, resource title, type, and academic year — all structured fields, so search is filtering, not a search engine to operate. **This clean navigation is the platform's only real advantage over a shared Google Drive, so it is where build effort should concentrate.**
+Students and reps land on — and are confined to — **their own level**: the level switcher shows only their level (a rep with multiple assigned levels sees those). **Super-admins** get the full Level 100–400 switcher. Global search runs across course code, title, resource title, type, and academic year — all structured fields, so search is filtering, not a search engine to operate — and **is itself scoped to the user's readable level(s)**. **This clean navigation is the platform's only real advantage over a shared Google Drive, so it is where build effort should concentrate.**
 
 ---
 
@@ -252,9 +274,9 @@ flowchart TD
 
 Reps see only courses in their assigned levels. Type and academic year are **required, structured fields** (not free text) — this keeps the library clean and makes search work.
 
-### 8.2 Download (any signed-in user)
+### 8.2 Download (signed-in user, in-scope level only)
 
-Files are never public. Every download requires a valid session and is a short-lived signed URL, so links can't be shared permanently or scraped in bulk.
+Files are never public. Every download requires a valid session **and** that the resource's level is in the user's read scope (own level for students/reps; any level for super-admins). Downloads are short-lived signed URLs, so links can't be shared permanently or scraped in bulk.
 
 ```mermaid
 sequenceDiagram
@@ -264,6 +286,7 @@ sequenceDiagram
     participant R2 as Cloudflare R2
     U->>API: GET /resources/:id/download (with session)
     API->>API: verify valid session
+    API->>API: verify resource level in user's read scope
     API->>DB: check status = ACTIVE, increment downloadCount
     API->>R2: create short-lived signed URL
     R2-->>API: signed URL
@@ -296,7 +319,8 @@ The threat model that actually matters here, now that access is authenticated an
 | Threat | Mitigation |
 |--------|------------|
 | **Unauthorized access** | Every read requires a valid Auth.js session tied to a verified `@st.knust.edu.gh` email. |
-| **Broken access control / IDOR** | Server-side scope check on every write: `super_admin` OR (`rep` AND `resource.course.level ∈ rep.scopes`). Never trust a role sent by the client. |
+| **Cross-level access (reads)** | Every read (list, course, resource, download, search) is filtered **server-side** by the user's read scope: students/reps → own level only; super-admins → all. A student requesting an out-of-level course or resource by direct URL/ID is rejected — never rely on the UI hiding it. |
+| **Broken access control / IDOR** | Server-side scope check on every **read and write**: reads verify the resource's level is in the user's read scope; writes require `super_admin` OR (`rep` AND `resource.course.level ∈ rep.scopes`). Never trust a role or level sent by the client. |
 | **Malicious file uploads** | Whitelist mime types + cap size **server-side**; store originals in R2 and never execute them; serve only via short-lived signed URLs. Optional async malware scan. |
 | **Magic-link / login abuse (spam)** | Rate-limit sign-in requests per email and per IP; short link/OTP expiry; single-use tokens. |
 | **Rep account compromise** | No passwords to phish; instant deactivation via status flag; full audit trail via `uploadedBy`. |
@@ -326,6 +350,7 @@ The threat model that actually matters here, now that access is authenticated an
 
 No search engine needed — all searchable data is structured, so search is filtering over Postgres:
 
+- **Always scoped to the user's readable level(s)** — the level filter is applied server-side and cannot be widened by the client. Students/reps search only their own level; super-admins may search across all.
 - Facets: **level, semester, course code/title, type, academic year.**
 - Free-text: match on course code, course title, resource title.
 - Add a Postgres GIN index / `pg_trgm` for fuzzy title search only if simple `ILIKE` proves too slow — unlikely at department scale.
@@ -555,13 +580,14 @@ model MaterialRequest {
 **Auth (handled by Auth.js):**
 - `/api/auth/*` — sign-in (email magic link), callback, sign-out, session. Domain gate (`@st.knust.edu.gh`) enforced in the sign-in callback.
 
-**Authenticated — any signed-in student:**
-- `GET /api/courses?level=&semester=` — list courses
-- `GET /api/courses/:code` — course detail
-- `GET /api/courses/:code/resources?type=&year=` — resources for a course
-- `GET /api/resources/:id/download` — verify session + active, increment count, redirect to signed URL
-- `POST /api/requests` — submit a material request
-- `PATCH /api/me` — set/update index number (first-login onboarding)
+**Authenticated — any signed-in user, filtered to their read scope:**
+- `GET /api/courses?level=&semester=` — list courses. **The `level` filter is clamped server-side to the user's readable level(s); a student/rep cannot list another level even by passing `level=` explicitly. Super-admins may pass any level.**
+- `GET /api/courses/:code` — course detail. **Returns 403/404 if the course's level is outside the user's read scope.**
+- `GET /api/courses/:code/resources?type=&year=` — resources for a course. **Same level-scope gate.**
+- `GET /api/resources/:id/download` — verify session **+ resource level in read scope** + active, increment count, redirect to signed URL.
+- `GET /api/search?q=` — scoped search; results limited to the user's readable level(s).
+- `POST /api/requests` — submit a material request.
+- `PATCH /api/me` — set/update index number (first-login onboarding).
 
 **Rep / Admin (auth + scope check):**
 - `POST /api/resources` — multipart (file → validate → R2) or link; sets `uploadedBy`
@@ -573,7 +599,7 @@ model MaterialRequest {
 - `PATCH /api/users/:id` — grant rep role + assign level scopes / deactivate
 - `GET /api/requests` — material-request inbox; `PATCH /api/requests/:id` — resolve
 
-Every write enforces: `role === SUPER_ADMIN` **OR** (`role === REP` **AND** target course level ∈ rep's scopes). Every read enforces a valid session. All bodies validated with Zod.
+Every **read** enforces: valid session **AND** the target's level ∈ the user's read scope (own level for student/rep; all for super_admin). Every **write** enforces: `role === SUPER_ADMIN` **OR** (`role === REP` **AND** target course level ∈ rep's scopes). Never trust a client-supplied role or level. All bodies validated with Zod.
 
 ---
 
