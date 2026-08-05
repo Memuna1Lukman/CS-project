@@ -1,11 +1,13 @@
-import PageShell from '@/components/PageShell';
-import StagePlaceholder from '@/components/StagePlaceholder';
+'use client';
 
-// TODO(backend): wire to POST /api/courses, PATCH /api/courses/:id (super-admin only)
+import { useEffect, useState } from 'react';
+import PageShell from '@/components/PageShell';
+import { ApiCourse } from '@/types/resource';
+
 export default function AdminCoursesPage() {
-  return (
-    <PageShell>
-      <StagePlaceholder title="Manage courses" note="Add/edit courses — coming in Stage 6." />
-    </PageShell>
-  );
+  const [courses, setCourses] = useState<ApiCourse[]>([]); const [message, setMessage] = useState<string | null>(null);
+  const load = async () => { const response = await fetch('/api/courses'); const data = await response.json(); if (!response.ok) { setMessage(data.error ?? 'Could not load courses.'); return; } setCourses(data); };
+  useEffect(() => { void load(); }, []);
+  const create = async (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = new FormData(event.currentTarget); const response = await fetch('/api/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(form)) }); const data = await response.json(); if (!response.ok) { setMessage(data.error ?? 'Could not create course.'); return; } event.currentTarget.reset(); setMessage('Course created.'); void load(); };
+  return <PageShell><h1 className="text-2xl font-bold text-[var(--text-primary)]">Manage courses</h1><p className="mt-2 text-sm text-[var(--text-muted)]">Add permanent course-catalog entries for the Computer Science department.</p>{message && <p role="status" className="mt-4 text-sm text-[var(--text-muted)]">{message}</p>}<form onSubmit={create} className="mt-6 grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-2"><label className="text-sm font-semibold text-[var(--text-primary)]">Course code<input name="code" required className="mt-1 block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3" /></label><label className="text-sm font-semibold text-[var(--text-primary)]">Title<input name="title" required className="mt-1 block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3" /></label><label className="text-sm font-semibold text-[var(--text-primary)]">Level<select name="level" defaultValue="100" className="mt-1 block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3"><option>100</option><option>200</option><option>300</option><option>400</option></select></label><label className="text-sm font-semibold text-[var(--text-primary)]">Semester<select name="semester" defaultValue="1" className="mt-1 block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3"><option>1</option><option>2</option></select></label><label className="text-sm font-semibold text-[var(--text-primary)] sm:col-span-2">Lecturer (optional)<input name="lecturer" className="mt-1 block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3" /></label><button className="justify-self-start min-h-11 px-4 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] font-semibold">Add course</button></form><ul className="mt-8 space-y-2">{courses.map((course) => <li key={course.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)]"><span className="font-mono text-xs text-[var(--text-muted)]">{course.code}</span><span className="ml-3 font-semibold">{course.title}</span><span className="ml-3 text-[var(--text-muted)]">Level {course.level}, Semester {course.semester}</span></li>)}</ul></PageShell>;
 }

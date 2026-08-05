@@ -1,4 +1,4 @@
-export type ResourceType = 'SLIDES' | 'PAST_QUESTION' | 'LAB_MANUAL' | 'BOOK' | 'NOTES' | 'OTHER';
+export type ResourceType = 'SLIDES' | 'NOTES' | 'PAST_QUESTION' | 'ASSIGNMENT' | 'SOLUTION' | 'LAB_MANUAL' | 'BOOK' | 'OUTLINE' | 'TIMETABLE' | 'LINK' | 'OTHER';
 export type ResourceStatus = 'ACTIVE' | 'REMOVED';
 
 export type Level = 100 | 200 | 300 | 400;
@@ -28,4 +28,27 @@ export interface Resource {
   downloadCount: number;
   uploadedBy: string;
   createdAt: string;
+}
+
+export interface ApiCourse {
+  id: number;
+  code: string;
+  title: string;
+  level: Level;
+  semester: Semester;
+  lecturer: string | null;
+  resourceCount: number;
+}
+
+export interface ApiResource {
+  id: number;
+  title: string;
+  type: ResourceType;
+  academicYear: string | null;
+  fileSize: number | null;
+  externalUrl: string | null;
+  status: ResourceStatus;
+  downloadCount: number;
+  createdAt: string;
+  course?: Pick<ApiCourse, 'code' | 'title' | 'level' | 'semester'>;
 }

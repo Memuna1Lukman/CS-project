@@ -1,22 +1,39 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import TopBar from '@/components/TopBar';
 import Sidebar from '@/components/Sidebar';
 import CourseCard from '@/components/CourseCard';
 import StatCard from '@/components/StatCard';
-import { MOCK_COURSES } from '@/lib/mockData';
-import { Level, Semester } from '@/types/resource';
+import { ApiCourse, Level, Semester } from '@/types/resource';
 
-// TODO(backend): GET /api/courses?level=&semester= instead of filtering
-// MOCK_COURSES client-side.
 export default function LibraryPage() {
   const [activeLevel, setActiveLevel] = useState<Level>(100);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [courses, setCourses] = useState<ApiCourse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadCourses = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/courses');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? 'Could not load courses.');
+      setCourses(data);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not load courses.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void loadCourses(); }, []);
 
   const coursesByLevel = useMemo(
-    () => MOCK_COURSES.filter((course) => course.level === activeLevel),
-    [activeLevel]
+    () => courses.filter((course) => course.level === activeLevel),
+    [courses, activeLevel]
   );
 
   const totalResources = useMemo(
@@ -33,6 +50,7 @@ export default function LibraryPage() {
       <div className="flex flex-1">
         <Sidebar
           activeLevel={activeLevel}
+          courses={courses}
           onSelectLevel={setActiveLevel}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -46,7 +64,14 @@ export default function LibraryPage() {
             Browse courses and their resources.
           </p>
 
-          {coursesByLevel.length === 0 ? (
+          {loading ? (
+            <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">Loading courses…</div>
+          ) : error ? (
+            <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
+              <p>{error}</p>
+              <button type="button" onClick={() => void loadCourses()} className="mt-3 min-h-11 px-4 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] font-semibold">Try again</button>
+            </div>
+          ) : coursesByLevel.length === 0 ? (
             <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
               No courses in this level yet.
             </div>

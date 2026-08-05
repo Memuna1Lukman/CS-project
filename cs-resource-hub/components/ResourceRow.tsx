@@ -1,14 +1,20 @@
 import { Download, ExternalLink } from 'lucide-react';
-import { Resource } from '@/types/resource';
+import { ApiResource } from '@/types/resource';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 
-export default function ResourceRow({ resource }: { resource: Resource }) {
-  const isExternal = Boolean(resource.externalUrl);
+function formatFileSize(bytes: number | null) {
+  if (bytes === null) return null;
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
-  // TODO(backend): GET /api/resources/:id/download — verify session, check
-  // status = ACTIVE, increment downloadCount, redirect to signed R2 URL.
-  // External-link resources just open resource.externalUrl directly.
-  const handleAction = () => {};
+export default function ResourceRow({ resource }: { resource: ApiResource }) {
+  const isExternal = Boolean(resource.externalUrl);
+  const fileSize = formatFileSize(resource.fileSize);
+
+  const handleAction = () => {
+    window.location.assign(`/api/resources/${resource.id}/download`);
+  };
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl px-3 py-2.5 shadow-[0_1px_2px_var(--shadow)]">
@@ -22,14 +28,14 @@ export default function ResourceRow({ resource }: { resource: Resource }) {
         </p>
         <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
           <span className="sm:hidden">{RESOURCE_TYPE_LABELS[resource.type]} · </span>
-          {resource.academicYear}
-          {!isExternal && resource.fileSize ? ` · ${resource.fileSize}` : ''}
+          {resource.academicYear ?? 'Year not listed'}
+          {!isExternal && fileSize ? ` · ${fileSize}` : ''}
         </p>
       </div>
 
-      {!isExternal && resource.fileSize && (
+      {!isExternal && fileSize && (
         <span className="hidden sm:inline shrink-0 text-xs text-[var(--text-muted)] tabular-nums">
-          {resource.fileSize}
+          {fileSize}
         </span>
       )}
 

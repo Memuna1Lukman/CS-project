@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
-import { Course } from '@/types/resource';
+import { ApiCourse } from '@/types/resource';
 
-export default function CourseCard({ course }: { course: Course }) {
+export default function CourseCard({ course }: { course: ApiCourse }) {
   return (
     <Link
       href={`/courses/${encodeURIComponent(course.code)}`}

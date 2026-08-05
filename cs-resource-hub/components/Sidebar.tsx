@@ -4,20 +4,20 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { Level } from '@/types/resource';
-import { MOCK_COURSES } from '@/lib/mockData';
+import { ApiCourse, Level } from '@/types/resource';
 
 const LEVELS: Level[] = [100, 200, 300, 400];
 const SEMESTERS: (1 | 2)[] = [1, 2];
 
 interface SidebarProps {
   activeLevel: Level;
+  courses: ApiCourse[];
   onSelectLevel: (level: Level) => void;
   open: boolean;
   onClose: () => void;
 }
 
-export default function Sidebar({ activeLevel, onSelectLevel, open, onClose }: SidebarProps) {
+export default function Sidebar({ activeLevel, courses: allCourses, onSelectLevel, open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState<Set<Level>>(new Set([activeLevel]));
   const [collapsed, setCollapsed] = useState(false);
@@ -66,7 +66,7 @@ export default function Sidebar({ activeLevel, onSelectLevel, open, onClose }: S
           {LEVELS.map((level) => {
             const isActiveLevel = level === activeLevel;
             const isExpanded = expanded.has(level) && !collapsed;
-            const courses = MOCK_COURSES.filter((c) => c.level === level);
+            const courses = allCourses.filter((c) => c.level === level);
 
             return (
               <div key={level}>

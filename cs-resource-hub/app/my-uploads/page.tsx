@@ -1,15 +1,19 @@
-import PageShell from '@/components/PageShell';
-import StagePlaceholder from '@/components/StagePlaceholder';
+'use client';
 
-// TODO(backend): wire to POST /api/resources, PATCH /api/resources/:id,
-// DELETE /api/resources/:id (rep/admin, scope-checked — see Appendix B)
+import { useEffect, useState } from 'react';
+import PageShell from '@/components/PageShell';
+import ResourceRow from '@/components/ResourceRow';
+import { ApiCourse, ApiResource, ResourceType } from '@/types/resource';
+import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
+
+const TYPES = Object.keys(RESOURCE_TYPE_LABELS) as ResourceType[];
+const currentYear = `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`;
+
 export default function MyUploadsPage() {
-  return (
-    <PageShell>
-      <StagePlaceholder
-        title="My uploads"
-        note="Upload drawer and your uploaded resources with soft-delete — coming in Stage 5. Visible to reps only once role-gating lands."
-      />
-    </PageShell>
-  );
+  const [resources, setResources] = useState<ApiResource[]>([]); const [courses, setCourses] = useState<ApiCourse[]>([]); const [message, setMessage] = useState<string | null>(null); const [loading, setLoading] = useState(true); const [uploading, setUploading] = useState(false);
+  const load = async () => { setLoading(true); try { const [mine, catalog] = await Promise.all([fetch('/api/resources?mine=true'), fetch('/api/courses')]); const [mineData, courseData] = await Promise.all([mine.json(), catalog.json()]); if (!mine.ok) throw new Error(mineData.error ?? 'Could not load uploads.'); if (!catalog.ok) throw new Error(courseData.error ?? 'Could not load courses.'); setResources(mineData); setCourses(courseData); } catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Could not load uploads.'); } finally { setLoading(false); } };
+  useEffect(() => { void load(); }, []);
+  const upload = async (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); setMessage(null); setUploading(true); const response = await fetch('/api/resources', { method: 'POST', body: new FormData(event.currentTarget) }); const data = await response.json(); setUploading(false); if (!response.ok) { setMessage(data.error ?? 'Upload failed.'); return; } event.currentTarget.reset(); setMessage('Resource uploaded.'); void load(); };
+  const remove = async (id: number) => { if (!window.confirm('Remove this resource from the library?')) return; const response = await fetch(`/api/resources/${id}`, { method: 'DELETE' }); const data = await response.json(); if (!response.ok) { setMessage(data.error ?? 'Could not remove the resource.'); return; } void load(); };
+  return <PageShell><div className="max-w-3xl"><h1 className="text-2xl font-bold text-[var(--text-primary)]">My uploads</h1><p className="mt-2 text-sm text-[var(--text-muted)]">Add material for the courses in your assigned level, or remove one of your uploads.</p>{message && <p role="status" className="mt-4 text-sm text-[var(--text-muted)]">{message}</p>}<form onSubmit={upload} className="mt-6 grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"><label className="text-sm font-semibold text-[var(--text-primary)]">Title<input name="title" required minLength={2} maxLength={180} className="mt-1 block w-full min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3" /></label><label className="text-sm font-semibold text-[var(--text-primary)]">Course<select name="courseId" required className="mt-1 block w-full min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3"><option value="">Select a course</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.code} — {course.title}</option>)}</select></label><div className="grid grid-cols-2 gap-3"><label className="text-sm font-semibold text-[var(--text-primary)]">Type<select name="type" required defaultValue="SLIDES" className="mt-1 block w-full min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3">{TYPES.map((type) => <option key={type} value={type}>{RESOURCE_TYPE_LABELS[type]}</option>)}</select></label><label className="text-sm font-semibold text-[var(--text-primary)]">Academic year<input name="academicYear" required pattern="[0-9]{4}/[0-9]{4}" defaultValue={currentYear} className="mt-1 block w-full min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3" /></label></div><label className="text-sm font-semibold text-[var(--text-primary)]">File (maximum 15 MB)<input name="file" type="file" className="mt-1 block w-full text-sm text-[var(--text-muted)]" /></label><label className="text-sm font-semibold text-[var(--text-primary)]">Or external link<input name="externalUrl" type="url" placeholder="https://…" className="mt-1 block w-full min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3" /></label><button disabled={uploading} className="justify-self-start min-h-11 px-4 rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] font-semibold disabled:opacity-60">{uploading ? 'Uploading…' : 'Upload resource'}</button></form><section className="mt-8"><h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Uploaded resources</h2>{loading ? <p className="text-sm text-[var(--text-muted)]">Loading uploads…</p> : resources.length ? <div className="space-y-3">{resources.map((resource) => <div key={resource.id}><ResourceRow resource={resource} /><button type="button" onClick={() => void remove(resource.id)} className="mt-1 min-h-11 text-sm text-[var(--text-muted)] underline">Remove</button></div>)}</div> : <p className="text-sm text-[var(--text-muted)]">You have not uploaded any resources yet.</p>}</section></div></PageShell>;
 }
