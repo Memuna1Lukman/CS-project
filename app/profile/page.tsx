@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LogOut, Mail, Hash, GraduationCap, RotateCcw, ShieldCheck, Upload, Wand2 } from 'lucide-react';
+import { LogOut, Mail, UserRound, GraduationCap, RotateCcw, ShieldCheck, Upload, Wand2 } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import { useSession } from '@/components/MockSessionProvider';
 import { useLibrary } from '@/components/MockLibraryProvider';
@@ -58,11 +58,9 @@ export default function ProfilePage() {
             <dd className="text-sm text-[var(--text-primary)]">Level {session.level}</dd>
           </div>
           <div className="flex items-center gap-3">
-            <Hash className="w-4 h-4 shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
-            <dt className="sr-only">Index number</dt>
-            <dd className="text-sm text-[var(--text-primary)] tabular-nums">
-              {session.indexNumber || 'Not set'}
-            </dd>
+            <UserRound className="w-4 h-4 shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
+            <dt className="sr-only">Username</dt>
+            <dd className="text-sm text-[var(--text-primary)]">{session.name}</dd>
           </div>
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-4 h-4 shrink-0 text-[var(--text-subtle)]" aria-hidden="true" />
@@ -108,6 +106,7 @@ export default function ProfilePage() {
         </nav>
       )}
 
+      {session.role === 'SUPER_ADMIN' && (
       <div className="mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
         <div className="flex items-center gap-2">
           <Wand2 className="w-4 h-4 text-[var(--text-subtle)]" aria-hidden="true" />
@@ -166,6 +165,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
         <div className="flex items-center gap-2">

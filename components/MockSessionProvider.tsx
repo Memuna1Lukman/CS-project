@@ -60,6 +60,15 @@ export function MockSessionProvider({ children }: { children: React.ReactNode })
   const updateSession = (patch: Partial<MockUser>) => {
     setSession((prev) => {
       if (!prev) return prev;
+      // Role changes represent an administrative action in the real app.
+      // Keep the demo from allowing a normal account to self-promote.
+      if (patch.role !== undefined && prev.role !== 'SUPER_ADMIN') {
+        const safePatch = { ...patch };
+        delete safePatch.role;
+        const next = { ...prev, ...safePatch };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        return next;
+      }
       const next = { ...prev, ...patch };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;

@@ -9,7 +9,10 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     EmailProvider({
-      server: {
+      // EMAIL_SERVER accepts a standard nodemailer connection URL, matching
+      // the documented deployment environment. Keep the individual variables
+      // as a fallback for providers that do not use a URL.
+      server: process.env.EMAIL_SERVER ?? {
         host: process.env.EMAIL_SERVER_HOST,
         port: Number(process.env.EMAIL_SERVER_PORT ?? 465),
         auth: { user: process.env.EMAIL_SERVER_USER, pass: process.env.EMAIL_SERVER_PASSWORD },
