@@ -7,6 +7,7 @@ import { useSession } from '@/components/MockSessionProvider';
 import { useLibrary } from '@/components/MockLibraryProvider';
 import { useToast } from '@/components/ToastProvider';
 import type { Level, Role } from '@/types/resource';
+import PageHeader from '@/components/PageHeader';
 
 const ROLE_LABELS: Record<Role, string> = {
   STUDENT: 'Student',
@@ -28,7 +29,7 @@ export default function ProfilePage() {
 
   return (
     <PageShell>
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Profile</h1>
+      <PageHeader eyebrow="Account" title="Profile" description="View your account details and manage your demo workspace." />
 
       <div className="mt-4 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
         <div className="flex items-center gap-3">

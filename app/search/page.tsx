@@ -7,6 +7,8 @@ import PageShell from '@/components/PageShell';
 import CourseCard from '@/components/CourseCard';
 import ResourceRow from '@/components/ResourceRow';
 import { useLibrary } from '@/components/MockLibraryProvider';
+import PageHeader from '@/components/PageHeader';
+import EmptyState from '@/components/EmptyState';
 
 function ResultTag({
   code,
@@ -66,10 +68,11 @@ export default function SearchPage() {
 
   const hasQuery = trimmed.length > 0;
   const hasResults = matchedCourses.length > 0 || matchedResources.length > 0;
+  const suggestions = ['Past questions', 'Slides', 'Level 200'];
 
   return (
     <PageShell>
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Search</h1>
+      <PageHeader eyebrow="Resource library" title="Search" description="Find courses and study materials by code, title, or resource type." />
 
       <form role="search" className="mt-4" onSubmit={(e) => e.preventDefault()}>
         <label htmlFor="search-page-input" className="sr-only">
@@ -90,21 +93,26 @@ export default function SearchPage() {
       </form>
 
       {!hasQuery && (
-        <p className="mt-6 text-sm text-[var(--text-muted)]">
-          Start typing to search across courses and resources.
-        </p>
+        <div className="mt-6 rounded-3xl bg-[var(--surface)] p-5 shadow-[0_1px_3px_var(--shadow)]">
+          <p className="text-sm text-[var(--text-muted)]">Start typing to search across courses and resources, or try a shortcut.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {suggestions.map((suggestion) => (
+              <button key={suggestion} type="button" onClick={() => setQuery(suggestion)} className="min-h-10 rounded-full bg-[var(--surface-2)] px-4 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-3)]">
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {hasQuery && !hasResults && (
-        <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
-          No matches for &quot;{query}&quot;.
-        </div>
+        <div className="mt-6"><EmptyState icon={SearchIcon} title={`No matches for “${query}”`} description="Try a broader term, or clear the search and use one of the shortcuts." action={<button type="button" onClick={() => setQuery('')} className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-fg)]">Clear search</button>} /></div>
       )}
 
       {hasQuery && matchedCourses.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">
-            Courses ({matchedCourses.length})
+          <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">
+            Courses <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--text-primary)]">{matchedCourses.length}</span>
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {matchedCourses.map((course) => (
@@ -119,8 +127,8 @@ export default function SearchPage() {
 
       {hasQuery && matchedResources.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">
-            Resources ({matchedResources.length})
+          <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">
+            Resources <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--text-primary)]">{matchedResources.length}</span>
           </h2>
           <div className="space-y-3">
             {matchedResources.map((resource) => (

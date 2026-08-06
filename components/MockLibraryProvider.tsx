@@ -19,6 +19,7 @@ type CourseInput = Omit<Course, 'resourceCount'>;
 type ResourceInput = Omit<Resource, 'id' | 'status' | 'downloadCount' | 'createdAt' | 'uploadedBy'>;
 
 interface LibraryContextValue {
+  isLoading: boolean;
   courses: Course[];
   resources: Resource[];
   users: MockUser[];
@@ -255,6 +256,7 @@ export function MockLibraryProvider({ children }: { children: React.ReactNode })
   };
 
   const value: LibraryContextValue = {
+    isLoading: !ready,
     courses,
     resources,
     users: state.users,
@@ -269,13 +271,6 @@ export function MockLibraryProvider({ children }: { children: React.ReactNode })
     updateRequestStatus,
     resetToDefaults,
   };
-
-  // Same guard as the theme script / session provider: don't render
-  // stateful UI until localStorage has been read, to avoid a flash of
-  // default data replaced by hydrated data.
-  if (!ready) {
-    return <div className="min-h-screen bg-[var(--bg)]" />;
-  }
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
 }

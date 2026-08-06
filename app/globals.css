@@ -84,6 +84,10 @@
   --type-other-soft: rgba(185, 187, 193, 0.14);
 }
 
+[data-theme="dark"] .course-card {
+  --course-soft: color-mix(in srgb, var(--course-accent) 18%, var(--surface));
+}
+
 *:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;

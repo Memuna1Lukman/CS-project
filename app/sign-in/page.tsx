@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MailCheck } from 'lucide-react';
+import { BookOpenCheck, MailCheck } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import { useSession } from '@/components/MockSessionProvider';
 import { useLibrary } from '@/components/MockLibraryProvider';
@@ -105,6 +105,11 @@ export default function SignInPage() {
 
   return (
     <PageShell>
+      <div className="mx-auto mt-6 max-w-sm text-center">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent)] text-[var(--accent-fg)]"><BookOpenCheck className="h-6 w-6" aria-hidden="true" /></span>
+        <p className="mt-3 text-sm font-bold text-[var(--text-primary)]">CS Resource Hub</p>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">Your course materials, kept in one calm place.</p>
+      </div>
       <div className="max-w-sm mx-auto mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Sign in</h1>
         <p className="mt-1.5 text-sm text-[var(--text-muted)]">

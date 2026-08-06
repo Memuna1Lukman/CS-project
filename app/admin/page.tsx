@@ -6,6 +6,8 @@ import PageShell from '@/components/PageShell';
 import StatCard from '@/components/StatCard';
 import { useLibrary } from '@/components/MockLibraryProvider';
 import { useRequireRole } from '@/components/MockSessionProvider';
+import PageHeader from '@/components/PageHeader';
+import { AdminCardsSkeleton } from '@/components/LoadingSkeletons';
 
 const ADMIN_SECTIONS = [
   { href: '/admin/courses', label: 'Manage courses', icon: BookOpen },
@@ -16,26 +18,20 @@ const ADMIN_SECTIONS = [
 
 export default function AdminOverviewPage() {
   const { permitted } = useRequireRole(['SUPER_ADMIN']);
-  const { courses, resources, users, requests } = useLibrary();
+  const { courses, resources, users, requests, isLoading } = useLibrary();
 
   if (!permitted) return null;
 
   const activeResources = resources.filter((r) => r.status === 'ACTIVE').length;
   const openRequests = requests.filter((r) => r.status === 'OPEN').length;
+  const removedResources = resources.filter((r) => r.status === 'REMOVED').length;
+  const reps = users.filter((user) => user.role === 'REP' && user.status === 'ACTIVE').length;
 
   return (
     <PageShell>
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Admin</h1>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
-        Department overview for super-admins.
-      </p>
+      <PageHeader eyebrow="Administration" title="Admin overview" description="Department overview for super-admins." />
 
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Courses" value={courses.length} />
-        <StatCard label="Resources" value={activeResources} />
-        <StatCard label="Users" value={users.length} />
-        <StatCard label="Open requests" value={openRequests} />
-      </div>
+      <div className="mt-5">{isLoading ? <AdminCardsSkeleton /> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><StatCard label="Courses" value={courses.length} /><StatCard label="Resources" value={activeResources} /><StatCard label="Users" value={users.length} /><StatCard label="Open requests" value={openRequests} /></div>}</div>
 
       <ul className="mt-6 space-y-2">
         {ADMIN_SECTIONS.map((section) => (
@@ -50,6 +46,16 @@ export default function AdminOverviewPage() {
           </li>
         ))}
       </ul>
+
+      <section className="mt-7">
+        <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-subtle)]">Needs attention</p>
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-primary)]">Coverage radar</h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <Link href="/admin/requests" className="rounded-2xl bg-[var(--surface)] p-4 shadow-[0_1px_3px_var(--shadow)] hover:bg-[var(--surface-3)]"><p className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">{openRequests}</p><p className="mt-1 text-sm text-[var(--text-muted)]">open material requests</p></Link>
+          <Link href="/admin/resources" className="rounded-2xl bg-[var(--surface)] p-4 shadow-[0_1px_3px_var(--shadow)] hover:bg-[var(--surface-3)]"><p className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">{removedResources}</p><p className="mt-1 text-sm text-[var(--text-muted)]">removed resources to review</p></Link>
+          <Link href="/admin/users" className="rounded-2xl bg-[var(--surface)] p-4 shadow-[0_1px_3px_var(--shadow)] hover:bg-[var(--surface-3)]"><p className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">{reps}</p><p className="mt-1 text-sm text-[var(--text-muted)]">active course reps</p></Link>
+        </div>
+      </section>
     </PageShell>
   );
 }

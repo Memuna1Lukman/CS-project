@@ -27,10 +27,16 @@ export default function OnboardingPage() {
   return (
     <PageShell>
       <div className="max-w-sm mx-auto mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
+        <div className="mb-5 flex items-center gap-2" aria-label="Onboarding step 1 of 2">
+          <span className="h-1.5 flex-1 rounded-full bg-[var(--accent)]" />
+          <span className="h-1.5 flex-1 rounded-full bg-[var(--surface-2)]" />
+          <span className="ml-1 text-xs font-medium text-[var(--text-muted)]">Step 1 of 2</span>
+        </div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Welcome</h1>
         <p className="mt-1.5 text-sm text-[var(--text-muted)]">
           Enter your index number so we can route you to the right level.
         </p>
+        <p className="mt-3 rounded-2xl bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--text-muted)]">Next, we’ll confirm your library access and course level.</p>
 
         <form onSubmit={handleSubmit} className="mt-5">
           <label
