@@ -8,7 +8,7 @@ const schema = z.object({ indexNumber: z.string().trim().min(5).max(40).transfor
 export async function GET() {
   const user = await requireActiveUser();
   if (!user) return jsonError('Authentication required', 401);
-  return Response.json({ id: user.id, name: user.name, email: user.email, role: user.role, status: user.status, indexNumber: user.indexNumber, scopes: user.scopes });
+  return Response.json({ id: user.id, name: user.name, email: user.email, role: user.role, status: user.status, indexNumber: user.indexNumber, level: user.level, scopes: user.scopes });
 }
 
 export async function PATCH(request: Request) {

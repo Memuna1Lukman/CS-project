@@ -1,4 +1,4 @@
-import { jsonError, parseId, requireActiveUser, validationError, courseInput } from '@/lib/api';
+import { canReadLevel, jsonError, parseId, requireActiveUser, validationError, courseInput } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
@@ -6,13 +6,15 @@ export const runtime = 'nodejs';
 type Context = { params: Promise<{ code: string }> };
 
 export async function GET(_: Request, { params }: Context) {
-  if (!await requireActiveUser()) return jsonError('Authentication required', 401);
+  const user = await requireActiveUser();
+  if (!user) return jsonError('Authentication required', 401);
   const { code } = await params;
   const course = await prisma.course.findUnique({
     where: { code: decodeURIComponent(code).toUpperCase() },
     include: { _count: { select: { resources: { where: { status: 'ACTIVE' } } } }, department: true },
   });
   if (!course) return jsonError('Course not found', 404);
+  if (!canReadLevel(user, course.level)) return jsonError('Course not found', 404);
   const { _count, ...result } = course;
   return Response.json({ ...result, resourceCount: _count.resources });
 }

@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const levels = [100, 200, 300, 400] as const;
-export const resourceTypes = ['SLIDES', 'NOTES', 'PAST_QUESTION', 'ASSIGNMENT', 'SOLUTION', 'LAB_MANUAL', 'BOOK', 'OUTLINE', 'TIMETABLE', 'LINK', 'OTHER'] as const;
+export const resourceTypes = ['SLIDES', 'NOTES', 'PAST_QUESTION', 'ASSIGNMENT', 'SOLUTION', 'LAB_MANUAL', 'OUTLINE', 'TIMETABLE', 'LINK', 'OTHER'] as const;
 
 export const courseInput = z.object({
   code: z.string().trim().min(3).max(30).transform((value) => value.toUpperCase()),
@@ -55,6 +55,37 @@ export async function canWriteCourse(userId: string, role: string, courseId: num
 export async function requireActiveUser() {
   const user = await currentUser();
   return user?.status === 'ACTIVE' ? user : null;
+}
+
+type ActiveUser = NonNullable<Awaited<ReturnType<typeof requireActiveUser>>>;
+
+export function readableLevelsFor(user: ActiveUser): number[] {
+  if (user.role === 'SUPER_ADMIN') return [...levels];
+  if (user.role === 'REP') return user.scopes.map((scope) => scope.level);
+  return user.level ? [user.level] : [];
+}
+
+export function courseReadWhere(user: ActiveUser) {
+  return user.role === 'SUPER_ADMIN' ? {} : { level: { in: readableLevelsFor(user) } };
+}
+
+export function resourceReadWhere(user: ActiveUser) {
+  return user.role === 'SUPER_ADMIN' ? {} : { course: { level: { in: readableLevelsFor(user) } } };
+}
+
+export function canReadLevel(user: ActiveUser, level: number) {
+  return readableLevelsFor(user).includes(level);
+}
+
+export function safeExternalUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.toLowerCase();
+    return host === 'drive.google.com' || host === 'docs.google.com' || host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtu.be';
+  } catch {
+    return false;
+  }
 }
 
 export function parseId(value: string) {

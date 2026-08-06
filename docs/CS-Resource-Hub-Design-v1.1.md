@@ -121,7 +121,7 @@ flowchart TD
 - **Provider:** Auth.js **Email (passwordless) provider**, restricted to the `@st.knust.edu.gh` domain at sign-in. Control of a KNUST mailbox = proof of enrolment, since only KNUST issues those addresses.
 - **Sessions:** managed by Auth.js (your "ship securely & fast" choice) — a long `maxAge` with rolling renewal means one sign-in lasts. **No hand-rolled access/refresh tokens**, so none of the token-rotation footguns.
 - **Role resolution & read scope:** on login, the email is checked against the rep/admin list; otherwise the session is a plain student. The session carries the user's **level scope** — a student's own level, a rep's assigned level(s), or "all" for super-admins — and every read is filtered against it server-side.
-- **Index number:** collected once at first login as profile data (used to auto-route the student to their level and for display/attribution). It is *not* the security gate — the email is.
+- **Index number:** collected once at first login as profile data. A student's level is an **administrator-assigned entitlement** until an authoritative KNUST roster integration exists; never derive authorization from a self-entered index number. The email is the enrolment gate.
 
 > Confirm the exact student email domain before building (expected `@st.knust.edu.gh`). If postgraduate or some cohorts use a different sub-domain, allow those too.
 
@@ -192,6 +192,7 @@ erDiagram
         enum role "student, rep, super_admin"
         enum status "active, inactive"
         string indexNumber UK "profile identity"
+        int level "admin-assigned student entitlement"
     }
     REPSCOPE {
         int id PK
@@ -322,7 +323,8 @@ The threat model that actually matters here, now that access is authenticated an
 | **Cross-level access (reads)** | Every read (list, course, resource, download, search) is filtered **server-side** by the user's read scope: students/reps → own level only; super-admins → all. A student requesting an out-of-level course or resource by direct URL/ID is rejected — never rely on the UI hiding it. |
 | **Broken access control / IDOR** | Server-side scope check on every **read and write**: reads verify the resource's level is in the user's read scope; writes require `super_admin` OR (`rep` AND `resource.course.level ∈ rep.scopes`). Never trust a role or level sent by the client. |
 | **Malicious file uploads** | Whitelist mime types + cap size **server-side**; store originals in R2 and never execute them; serve only via short-lived signed URLs. Optional async malware scan. |
-| **Magic-link / login abuse (spam)** | Rate-limit sign-in requests per email and per IP; short link/OTP expiry; single-use tokens. |
+| **Magic-link / login abuse (spam)** | Rate-limit sign-in requests per email and per IP using a shared production store; short link expiry; single-use tokens. A process-local limiter is development-only. |
+| **Untrusted external links** | Permit HTTPS links from an explicit allowlist only; disclose the destination before leaving the platform. |
 | **Rep account compromise** | No passwords to phish; instant deactivation via status flag; full audit trail via `uploadedBy`. |
 | **Copyright liability** | Now materially reduced: content is behind an enrolled-students-only gate (defensible as an internal resource). Keep upload acknowledgment, audit trail, and founder soft-delete/takedown. Prefer lecturer material + past questions; avoid wholesale publisher textbooks. |
 | **SQL injection** | Prisma parameterizes all queries. |

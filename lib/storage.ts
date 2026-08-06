@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 function r2Client() {
@@ -22,6 +22,10 @@ function bucket() {
 export async function uploadResourceFile(key: string, file: File) {
   const client = r2Client();
   await client.send(new PutObjectCommand({ Bucket: bucket(), Key: key, Body: Buffer.from(await file.arrayBuffer()), ContentType: file.type }));
+}
+
+export async function deleteResourceFile(key: string) {
+  await r2Client().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
 }
 
 export async function signedDownloadUrl(key: string, filename: string) {

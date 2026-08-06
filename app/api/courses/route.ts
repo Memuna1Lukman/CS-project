@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { jsonError, levels, requireActiveUser, validationError, courseInput } from '@/lib/api';
+import { courseInput, courseReadWhere, jsonError, levels, requireActiveUser, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
@@ -11,13 +11,15 @@ const querySchema = z.object({
 });
 
 export async function GET(request: Request) {
-  if (!await requireActiveUser()) return jsonError('Authentication required', 401);
+  const user = await requireActiveUser();
+  if (!user) return jsonError('Authentication required', 401);
   const parsed = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!parsed.success) return validationError(parsed.error);
   const { level, semester, q } = parsed.data;
 
   const courses = await prisma.course.findMany({
     where: {
+      ...courseReadWhere(user),
       ...(level ? { level } : {}),
       ...(semester ? { semester } : {}),
       ...(q ? { OR: [{ code: { contains: q, mode: 'insensitive' } }, { title: { contains: q, mode: 'insensitive' } }] } : {}),

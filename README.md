@@ -10,14 +10,14 @@ Full product design and rationale: [`docs/CS-Resource-Hub-Design-v1.1.md`](docs/
 
 ## Current status
 
-**Frontend — complete.** Every screen and flow is built and functional: KNUST-email sign-in (mocked), first-login onboarding, browse by Level/Semester/Course, course detail with filters, global search, profile, rep upload + "My uploads," and the full admin suite (courses, users/reps, material requests, resource moderation). Light and dark theme, mobile-responsive, built against `docs/UI-SPEC.md`'s design tokens.
+**Frontend — prototype complete.** The visual flows are built, but the screens are still connected to demo providers. They must not be deployed as the production access boundary; the protected API is the source of truth while the frontend/API integration is completed.
 
 **Backend — merged, integration in progress.** Prisma schema, Auth.js configuration, API routes (courses, resources, users, requests, search, auth), and R2 storage helpers exist under `app/api/`, `lib/`, and `prisma/`, and the project builds cleanly with both halves together. **Not yet complete:**
 - Frontend pages are still wired to in-memory mock providers (`MockSessionProvider`, `MockLibraryProvider`) rather than the real API routes in most places.
 - A real Neon Postgres database needs to be provisioned and migrated (`prisma/migrations/` is ready to run).
 - Local `.env` values (database, Auth.js secret, R2 credentials, email provider) are required and are **not** committed — see Getting Started.
 
-**Not started:** production email delivery testing (KNUST/Zimbra deliverability), rate limiting, and the Version 2 features listed in the design doc (§13).
+**Before pilot:** provision Neon/R2/email, assign the two super-admins and student-level entitlements, replace the remaining demo providers with API clients, test KNUST/Zimbra delivery, and seed a department-verified Level-100 catalogue. The API has local login throttling; production must use an edge or shared-KV rate limiter so limits apply across server instances.
 
 ## Tech stack
 
@@ -43,12 +43,16 @@ Create a `.env` file at the project root (values from the team's shared vault �
 ```
 DATABASE_URL=
 NEXTAUTH_SECRET=
-EMAIL_SERVER=
+NEXTAUTH_URL=http://localhost:3000
+EMAIL_SERVER_HOST=
+EMAIL_SERVER_PORT=465
+EMAIL_SERVER_USER=
+EMAIL_SERVER_PASSWORD=
 EMAIL_FROM=
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=
+R2_BUCKET=
 ```
 
 Apply the database schema, then run the dev server:
@@ -78,7 +82,7 @@ Look and feel — tokens, theming, component conventions, accessibility rules �
 
 ## Roadmap
 
-See design doc §13–§15 for the phased MVP plan and success criteria. Current phase: finishing frontend↔backend integration and database provisioning ahead of a single-level pilot.
+See design doc §13–§15 for the phased MVP plan and success criteria. Current phase: finishing frontend↔backend integration and database provisioning ahead of a single-level pilot. Do not add Version 2 features until the pilot meets its coverage and usage test.
 
 ## Contributing
 

@@ -9,7 +9,7 @@ export async function GET() {
   if (user.role !== 'SUPER_ADMIN') return jsonError('Super-admin access required', 403);
 
   return Response.json(await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true, status: true, indexNumber: true, createdAt: true, scopes: true },
+    select: { id: true, name: true, email: true, role: true, status: true, indexNumber: true, level: true, createdAt: true, scopes: true },
     orderBy: { createdAt: 'desc' },
   }));
 }

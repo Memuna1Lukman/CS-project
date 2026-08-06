@@ -5,6 +5,15 @@ import { prisma } from '@/lib/prisma';
 
 export const STUDENT_EMAIL_DOMAIN = '@st.knust.edu.gh';
 
+export function normalizeStudentEmail(identifier: string) {
+  const email = identifier.trim().toLowerCase();
+  const at = email.lastIndexOf('@');
+  if (at <= 0 || email.indexOf('@') !== at || !email.endsWith(STUDENT_EMAIL_DOMAIN)) {
+    throw new Error('Use your KNUST student email address.');
+  }
+  return email;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -16,12 +25,17 @@ export const authOptions: NextAuthOptions = {
       },
       from: process.env.EMAIL_FROM,
       maxAge: 10 * 60,
+      normalizeIdentifier: normalizeStudentEmail,
     }),
   ],
   session: { strategy: 'database', maxAge: 60 * 60 * 24 * 90, updateAge: 60 * 60 * 24 },
   callbacks: {
     async signIn({ user }: { user: { email?: string | null } }) {
-      return Boolean(user.email?.toLowerCase().endsWith(STUDENT_EMAIL_DOMAIN));
+      try {
+        return Boolean(user.email && normalizeStudentEmail(user.email));
+      } catch {
+        return false;
+      }
     },
   },
   pages: { signIn: '/sign-in' },

@@ -53,6 +53,7 @@ model User {
   role          Role       @default(STUDENT)
   status        UserStatus @default(ACTIVE)
   indexNumber   String?    @unique
+  level         Int?
   accounts      Account[]
   sessions      Session[]
   scopes        RepScope[]
@@ -117,7 +118,7 @@ model Resource {
   id            Int            @id @default(autoincrement())
   title         String
   type          ResourceType
-  academicYear  String?
+  academicYear  String
   storageKey    String?
   fileSize      Int?
   mimeType      String?
