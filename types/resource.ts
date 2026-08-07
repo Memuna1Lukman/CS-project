@@ -1,4 +1,4 @@
-export type ResourceType = 'SLIDES' | 'PAST_QUESTION' | 'LAB_MANUAL' | 'NOTES' | 'OTHER';
+export type ResourceType = 'SLIDES' | 'NOTES' | 'PAST_QUESTION' | 'ASSIGNMENT' | 'SOLUTION' | 'LAB_MANUAL' | 'BOOK' | 'OUTLINE' | 'TIMETABLE' | 'LINK' | 'OTHER';
 export type ResourceStatus = 'ACTIVE' | 'REMOVED';
 
 export type Level = 100 | 200 | 300 | 400;
@@ -27,6 +27,11 @@ export interface MockUser {
   // (design doc §4), never fabricated client-side.
   level: Level | null;
   indexNumber: string;
+  programme?: string;
+  cohortYear?: number;
+  // A rep's full set of assigned level scopes (RepScope rows); `level` above
+  // still carries their primary/first scope for existing single-level UI.
+  scopes?: Level[];
   status: UserStatus;
 }
 
@@ -49,6 +54,7 @@ export interface Resource {
   type: ResourceType;
   academicYear: string;
   fileSize?: string;
+  storageKey?: string;
   fileName?: string;
   mimeType?: string;
   externalUrl?: string;

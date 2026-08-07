@@ -2,7 +2,7 @@
 
 import { use, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { ArrowLeft, FileSearch, Files, Upload } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import FilterPills from '@/components/FilterPills';
 import ResourceRow from '@/components/ResourceRow';
@@ -11,13 +11,16 @@ import RequestMaterialDrawer from '@/components/RequestMaterialDrawer';
 import { useLibrary } from '@/components/LibraryProvider';
 import { useSession } from '@/components/SessionProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
+import EmptyState from '@/components/EmptyState';
+import PageHeader from '@/components/PageHeader';
+import { ResourceListSkeleton } from '@/components/LoadingSkeletons';
 
 export default function CourseDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const courseCode = decodeURIComponent(code);
 
   const { session } = useSession();
-  const { courses, resources: allResources } = useLibrary();
+  const { courses, resources: allResources, loading: isLoading } = useLibrary();
 
   const course = courses.find((c) => c.code.toLowerCase() === courseCode.toLowerCase());
   const resources = useMemo(
@@ -66,23 +69,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
         >
           <ArrowLeft className="w-4 h-4" /> Back to library
         </Link>
-        <div className="text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
-          Course not found or not in your level scope.
-        </div>
+        <EmptyState icon={FileSearch} title="Course not found" description="This course is unavailable or outside your current level scope." action={<Link href="/" className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-fg)]">Back to library</Link>} />
       </PageShell>
     );
   }
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to library
-        </Link>
-        {canUpload && (
+      <div className="mb-6"><PageHeader eyebrow={`${course.code} · Level ${course.level}`} title={course.title} description={course.lecturer ?? 'Lecturer to be confirmed'} actions={<><Link href="/" className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-2)]"><ArrowLeft className="w-4 h-4" /> Library</Link>{canUpload && (
           <button
             type="button"
             onClick={() => setUploadOpen(true)}
@@ -90,35 +84,34 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
           >
             <Upload className="w-4 h-4" /> Upload material
           </button>
-        )}
-      </div>
+        )}</>} /></div>
 
-      <header>
-        <span className="inline-block font-mono text-[11px] font-semibold px-2 py-1 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)]">
-          {course.code}
-        </span>
-        <h1 className="mt-2.5 text-xl font-bold text-[var(--text-primary)] leading-snug">
-          {course.title}
-        </h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
-          {course.lecturer ? `${course.lecturer} · ` : ''}Level {course.level} · Semester {course.semester}
-        </p>
+      <header className="rounded-3xl bg-[var(--surface)] p-5 shadow-[0_1px_3px_var(--shadow)] sm:p-6">
+        <div className="mt-5 grid grid-cols-3 gap-2 border-t border-[var(--border)] pt-4 text-center">
+          <div><p className="text-xs text-[var(--text-subtle)]">Level</p><p className="mt-1 text-sm font-bold text-[var(--text-primary)]">{course.level}</p></div>
+          <div><p className="text-xs text-[var(--text-subtle)]">Semester</p><p className="mt-1 text-sm font-bold text-[var(--text-primary)]">{course.semester}</p></div>
+          <div><p className="text-xs text-[var(--text-subtle)]">Materials</p><p className="mt-1 inline-flex items-center gap-1 text-sm font-bold text-[var(--text-primary)]"><Files className="h-3.5 w-3.5" aria-hidden="true" />{resources.length}</p></div>
+        </div>
       </header>
 
-      <div className="mt-6 space-y-2.5">
+      <div className="sticky top-16 z-20 -mx-4 mt-4 bg-[var(--bg)] px-4 py-3 sm:static sm:mx-0 sm:mt-6 sm:bg-transparent sm:px-0 sm:py-0">
+        <div className="space-y-2.5 overflow-x-auto pb-1">
         <FilterPills label="Type" options={typeOptions} active={typeFilter} onChange={setTypeFilter} />
         <FilterPills label="Year" options={yearOptions} active={yearFilter} onChange={setYearFilter} />
+        </div>
       </div>
 
       <div className="mt-5 space-y-2">
-        {filteredResources.length ? (
+        {isLoading ? <ResourceListSkeleton /> : filteredResources.length ? (
           filteredResources.map((resource) => (
             <ResourceRow key={resource.id} resource={resource} />
           ))
         ) : (
-          <div className="text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
-            No resources match these filters.
-          </div>
+          <EmptyState
+            icon={FileSearch}
+            title="No materials match these filters"
+            description="Try another material type or academic year to find what you need."
+          />
         )}
       </div>
 
@@ -148,4 +141,3 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
     </PageShell>
   );
 }
-

@@ -17,7 +17,10 @@ export async function GET(request: Request, { params }: Context) {
   if (!canReadLevel(user, course.level)) return jsonError('Course not found', 404);
   return Response.json(await prisma.resource.findMany({
     where: { courseId: course.id, status: 'ACTIVE', ...(query.data.type ? { type: query.data.type } : {}), ...(query.data.year ? { academicYear: query.data.year } : {}) },
-    include: { uploadedBy: { select: { id: true, name: true } } },
+    include: {
+      course: { select: { code: true, title: true, level: true, semester: true } },
+      uploadedBy: { select: { id: true, name: true, email: true } },
+    },
     orderBy: { createdAt: 'desc' },
   }));
 }

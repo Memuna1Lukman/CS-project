@@ -1,10 +1,12 @@
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const levels = [100, 200, 300, 400] as const;
-export const resourceTypes = ['SLIDES', 'NOTES', 'PAST_QUESTION', 'ASSIGNMENT', 'SOLUTION', 'LAB_MANUAL', 'OUTLINE', 'TIMETABLE', 'LINK', 'OTHER'] as const;
+export const resourceTypes = ['SLIDES', 'NOTES', 'PAST_QUESTION', 'ASSIGNMENT', 'SOLUTION', 'LAB_MANUAL', 'BOOK', 'OUTLINE', 'TIMETABLE', 'LINK', 'OTHER'] as const;
+export type Level = (typeof levels)[number];
 
 export const courseInput = z.object({
   code: z.string().trim().min(3).max(30).transform((value) => value.toUpperCase()),
@@ -52,6 +54,10 @@ export async function canWriteCourse(userId: string, role: string, courseId: num
   return Boolean(await prisma.repScope.findUnique({ where: { userId_level: { userId, level: course.level } } }));
 }
 
+export async function audit(actorId: string | null | undefined, action: string, entity: string, entityId: string | number, metadata?: Prisma.InputJsonValue) {
+  await prisma.auditLog.create({ data: { actorId: actorId ?? null, action, entity, entityId: String(entityId), metadata } });
+}
+
 export async function requireActiveUser() {
   const user = await currentUser();
   return user?.status === 'ACTIVE' ? user : null;
@@ -59,22 +65,23 @@ export async function requireActiveUser() {
 
 type ActiveUser = NonNullable<Awaited<ReturnType<typeof requireActiveUser>>>;
 
-export function readableLevelsFor(user: ActiveUser): number[] {
+/** The only source of truth for resource visibility. Never accept a level from the client. */
+export function readableLevels(user: ActiveUser): Level[] {
   if (user.role === 'SUPER_ADMIN') return [...levels];
-  if (user.role === 'REP') return user.scopes.map((scope) => scope.level);
-  return user.level ? [user.level] : [];
+  if (user.role === 'REP') return user.scopes.map((scope) => scope.level).filter((level): level is Level => levels.includes(level as Level));
+  return user.level && levels.includes(user.level as Level) ? [user.level as Level] : [];
 }
 
 export function courseReadWhere(user: ActiveUser) {
-  return user.role === 'SUPER_ADMIN' ? {} : { level: { in: readableLevelsFor(user) } };
+  return user.role === 'SUPER_ADMIN' ? {} : { level: { in: readableLevels(user) } };
 }
 
 export function resourceReadWhere(user: ActiveUser) {
-  return user.role === 'SUPER_ADMIN' ? {} : { course: { level: { in: readableLevelsFor(user) } } };
+  return user.role === 'SUPER_ADMIN' ? {} : { course: { level: { in: readableLevels(user) } } };
 }
 
 export function canReadLevel(user: ActiveUser, level: number) {
-  return readableLevelsFor(user).includes(level);
+  return readableLevels(user).includes(level as Level);
 }
 
 export function safeExternalUrl(value: string): boolean {
