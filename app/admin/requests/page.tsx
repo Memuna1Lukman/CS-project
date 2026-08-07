@@ -1,8 +1,8 @@
 'use client';
 
-import PageShell from '@/components/PageShell';
-import { useLibrary } from '@/components/MockLibraryProvider';
-import { useRequireRole } from '@/components/MockSessionProvider';
+import AdminPageShell from '@/components/AdminPageShell';
+import { useLibrary } from '@/components/LibraryProvider';
+import { useRequireRole } from '@/components/SessionProvider';
 import { useToast } from '@/components/ToastProvider';
 import type { RequestStatus } from '@/types/resource';
 
@@ -14,7 +14,6 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
 
 const STATUS_ACTIONS: RequestStatus[] = ['OPEN', 'FULFILLED', 'DISMISSED'];
 
-// TODO(backend): wire to GET /api/requests, PATCH /api/requests/:id
 export default function AdminRequestsPage() {
   const { permitted } = useRequireRole(['SUPER_ADMIN']);
   const { requests, updateRequestStatus } = useLibrary();
@@ -22,14 +21,14 @@ export default function AdminRequestsPage() {
 
   if (!permitted) return null;
 
-  const handleStatus = (id: string, status: RequestStatus) => {
-    const result = updateRequestStatus(id, status);
+  const handleStatus = async (id: string, status: RequestStatus) => {
+    const result = await updateRequestStatus(id, status);
     if (result.ok) toast(`Request marked ${STATUS_LABELS[status].toLowerCase()}.`);
     else toast(result.error, 'error');
   };
 
   return (
-    <PageShell>
+    <AdminPageShell>
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Material requests</h1>
       <p className="mt-1 text-sm text-[var(--text-muted)]">
         Students&apos; &quot;I can&apos;t find this&quot; requests — your coverage radar.
@@ -83,6 +82,6 @@ export default function AdminRequestsPage() {
           ))}
         </div>
       )}
-    </PageShell>
+    </AdminPageShell>
   );
 }

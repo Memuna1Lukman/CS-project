@@ -1,25 +1,26 @@
 'use client';
 
 import { Trash2 } from 'lucide-react';
-import PageShell from '@/components/PageShell';
-import { useLibrary } from '@/components/MockLibraryProvider';
-import { useRequireRole } from '@/components/MockSessionProvider';
+import AdminPageShell from '@/components/AdminPageShell';
+import { useLibrary } from '@/components/LibraryProvider';
+import { useRequireRole } from '@/components/SessionProvider';
 import { useToast } from '@/components/ToastProvider';
 import { RESOURCE_TYPE_BADGE_CLASSES, RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 
-// TODO(backend): wire to GET /api/resources (all, super-admin only) and
-// DELETE /api/resources/:id (soft-delete, scope-checked — see Appendix B).
 // Unlike /my-uploads (rep, scoped to uploadedBy), this lists and moderates
 // every resource regardless of who uploaded it.
 export default function AdminResourcesPage() {
   const { permitted } = useRequireRole(['SUPER_ADMIN']);
-  const { resources, removeResource } = useLibrary();
+  const { resources, removeResource, users } = useLibrary();
   const toast = useToast();
 
   if (!permitted) return null;
 
-  const handleRemove = (id: string, title: string) => {
-    const result = removeResource(id);
+  const uploaderLabel = (uploadedById: string) =>
+    users.find((u) => u.id === uploadedById)?.email ?? uploadedById;
+
+  const handleRemove = async (id: string, title: string) => {
+    const result = await removeResource(id);
     if (result.ok) toast(`Removed "${title}".`);
     else toast(result.error, 'error');
   };
@@ -31,7 +32,7 @@ export default function AdminResourcesPage() {
   );
 
   return (
-    <PageShell>
+    <AdminPageShell>
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Moderate resources</h1>
       <p className="mt-1 text-sm text-[var(--text-muted)]">
         Every uploaded resource across all courses, regardless of who uploaded it.
@@ -67,7 +68,7 @@ export default function AdminResourcesPage() {
                   </div>
                   <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
                     <span className="sm:hidden">{RESOURCE_TYPE_LABELS[resource.type]} · </span>
-                    Uploaded by {resource.uploadedBy}
+                    Uploaded by {uploaderLabel(resource.uploadedBy)}
                   </p>
                 </div>
 
@@ -96,6 +97,6 @@ export default function AdminResourcesPage() {
           })}
         </div>
       )}
-    </PageShell>
+    </AdminPageShell>
   );
 }

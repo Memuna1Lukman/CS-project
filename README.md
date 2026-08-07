@@ -10,14 +10,14 @@ Full product design and rationale: [`docs/CS-Resource-Hub-Design-v1.1.md`](docs/
 
 ## Current status
 
-**Frontend — prototype complete.** The visual flows are built, but the screens are still connected to demo providers. They must not be deployed as the production access boundary; the protected API is the source of truth while the frontend/API integration is completed.
+**Frontend and backend are integrated.** `components/SessionProvider.tsx` and `components/LibraryProvider.tsx` talk to the real Auth.js session and the Appendix B API routes under `app/api/` (courses, resources, users, requests, search, auth) — there are no mock/demo providers left in the codebase. Reads are server-scoped by level (`lib/api.ts`); writes are scoped the same way and validated with Zod. First sign-in redirects to `/onboarding` to capture an index number; a student's `level` stays unset (and the UI says so honestly) until a super-admin assigns it from `/admin/users`.
 
-**Backend — merged, integration in progress.** Prisma schema, Auth.js configuration, API routes (courses, resources, users, requests, search, auth), and R2 storage helpers exist under `app/api/`, `lib/`, and `prisma/`, and the project builds cleanly with both halves together. **Not yet complete:**
-- Frontend pages are still wired to in-memory mock providers (`MockSessionProvider`, `MockLibraryProvider`) rather than the real API routes in most places.
-- A real Neon Postgres database needs to be provisioned and migrated (`prisma/migrations/` is ready to run).
-- Local `.env` values (database, Auth.js secret, R2 credentials, email provider) are required and are **not** committed — see Getting Started.
-
-**Before pilot:** provision Neon/R2/email, assign the two super-admins and student-level entitlements, replace the remaining demo providers with API clients, test KNUST/Zimbra delivery, and seed a department-verified Level-100 catalogue. The API has local login throttling; production must use an edge or shared-KV rate limiter so limits apply across server instances.
+**Not yet complete before a real pilot:**
+- Provision the actual production Neon/R2/Resend accounts and set the resulting `.env` values (see Getting Started and [`docs/PRODUCTION-SETUP.md`](docs/PRODUCTION-SETUP.md)) — a dev database still needs to be migrated and seeded per environment.
+- Promote the two founder accounts to `SUPER_ADMIN` and assign course-rep level scopes.
+- Replace the illustrative seed catalogue (`prisma/seed.ts`) with a department-verified Level 100 course list.
+- Confirm magic-link delivery actually reaches `@st.knust.edu.gh` inboxes (KNUST's Zimbra mail server is a known deliverability risk — see design doc §14) with a verified sending domain and SPF/DKIM.
+- The API's login rate limiter (`lib/rateLimit.ts`) is in-memory and per-instance — production needs a shared store (Upstash Redis or edge/WAF rate limiting) so limits hold across server instances.
 
 ## Tech stack
 
@@ -38,27 +38,25 @@ npm install
 npx prisma generate
 ```
 
-Create a `.env` file at the project root (values from the team's shared vault — never commit this file):
+Copy `.env.example` to `.env` and fill in real values (from the team's shared vault — never commit `.env`):
 
-```
-DATABASE_URL=
-NEXTAUTH_SECRET=
-NEXTAUTH_URL=http://localhost:3000
-EMAIL_SERVER_HOST=
-EMAIL_SERVER_PORT=465
-EMAIL_SERVER_USER=
-EMAIL_SERVER_PASSWORD=
-EMAIL_FROM=
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET=
+```bash
+cp .env.example .env
 ```
 
-Apply the database schema, then run the dev server:
+- `DATABASE_URL` / `DIRECT_URL` — a Neon Postgres project's **pooled** and **unpooled** connection strings respectively. Prisma migrations run over `DIRECT_URL`; the app queries over the pooled `DATABASE_URL` (`pgbouncer=true&connect_timeout=30` — the timeout matters, Neon free-tier compute can take a few seconds to wake from suspend).
+- `NEXTAUTH_SECRET` — generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+- `NEXTAUTH_URL` — `http://localhost:3000` for local dev; the deployed HTTPS URL in production.
+- `EMAIL_SERVER_*` / `EMAIL_FROM` — SMTP credentials for the magic-link sender (Resend or Brevo). `EMAIL_FROM`'s domain must be verified (SPF/DKIM) with that provider or sends will bounce/be filtered.
+- `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` — Cloudflare R2 S3-compatible credentials for resource file storage.
+
+For the required service accounts, data ownership decisions, and release sequence, follow [`docs/PRODUCTION-SETUP.md`](docs/PRODUCTION-SETUP.md).
+
+Apply the database schema and seed the course catalogue, then run the dev server:
 
 ```bash
 npx prisma migrate dev
+npm run db:seed
 npm run dev
 ```
 
@@ -71,8 +69,7 @@ app/                  Pages (App Router) and API routes (app/api/*)
 components/           Reusable UI components
 lib/                  Providers, API client, auth/prisma/storage helpers
 prisma/               Schema, migrations, seed script
-docs/                 Design doc, UI spec, and other project documentation
-DECISIONS.md          Locked project decisions (auth model, access rules, palette)
+docs/                 Design doc, UI spec, locked decisions (DECISIONS.md), and other project docs
 CLAUDE.md / AGENTS.md Instructions read by AI coding agents on this project
 ```
 
@@ -82,7 +79,7 @@ Look and feel — tokens, theming, component conventions, accessibility rules �
 
 ## Roadmap
 
-See design doc §13–§15 for the phased MVP plan and success criteria. Current phase: finishing frontend↔backend integration and database provisioning ahead of a single-level pilot. Do not add Version 2 features until the pilot meets its coverage and usage test.
+See design doc §13–§15 for the phased MVP plan and success criteria. Current phase: provisioning real service accounts, promoting the founders to `SUPER_ADMIN`, and seeding a verified Level 100 catalogue ahead of the single-level pilot. Do not add Version 2 features until the pilot meets its coverage and usage test.
 
 ## Contributing
 

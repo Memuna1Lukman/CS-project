@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { Pencil, Plus } from 'lucide-react';
-import PageShell from '@/components/PageShell';
+import AdminPageShell from '@/components/AdminPageShell';
 import Drawer from '@/components/Drawer';
-import { useLibrary } from '@/components/MockLibraryProvider';
-import { useRequireRole } from '@/components/MockSessionProvider';
+import { useLibrary } from '@/components/LibraryProvider';
+import { useRequireRole } from '@/components/SessionProvider';
 import { useToast } from '@/components/ToastProvider';
 import type { Course, Level, Semester } from '@/types/resource';
 
@@ -20,9 +20,9 @@ function EditCourseForm({ course, onDone }: { course: Course; onDone: () => void
   const [level, setLevel] = useState<Level>(course.level);
   const [semester, setSemester] = useState<Semester>(course.semester);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = updateCourse(course.code, {
+    const result = await updateCourse(course.code, {
       title: title.trim() || course.title,
       lecturer: lecturer.trim() || undefined,
       level,
@@ -108,12 +108,12 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
 
   const isValid = code.trim().length > 0 && title.trim().length > 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
     if (!isValid) return;
 
-    const result = addCourse({
+    const result = await addCourse({
       code: code.trim(),
       title: title.trim(),
       lecturer: lecturer.trim() || undefined,
@@ -214,7 +214,6 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-// TODO(backend): wire to POST /api/courses, PATCH /api/courses/:id (super-admin only)
 export default function AdminCoursesPage() {
   const { permitted } = useRequireRole(['SUPER_ADMIN']);
   const { courses } = useLibrary();
@@ -224,7 +223,7 @@ export default function AdminCoursesPage() {
   if (!permitted) return null;
 
   return (
-    <PageShell>
+    <AdminPageShell>
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Manage courses</h1>
         <button
@@ -291,6 +290,6 @@ export default function AdminCoursesPage() {
       <Drawer open={addOpen} onClose={() => setAddOpen(false)} title="Add course">
         <AddCourseForm onDone={() => setAddOpen(false)} />
       </Drawer>
-    </PageShell>
+    </AdminPageShell>
   );
 }

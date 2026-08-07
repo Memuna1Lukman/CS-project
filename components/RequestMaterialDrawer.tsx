@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Drawer from './Drawer';
-import { useLibrary } from './MockLibraryProvider';
+import { useLibrary } from './LibraryProvider';
 
 export default function RequestMaterialDrawer({
   courseCode,
@@ -33,13 +33,12 @@ export default function RequestMaterialDrawer({
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
     if (!isValid) return;
 
-    // TODO(backend): POST /api/requests with { courseCode, note }
-    const result = addRequest({ courseCode, note: note.trim() });
+    const result = await addRequest({ courseCode, note: note.trim() });
     if (!result.ok) {
       setError(result.error);
       return;

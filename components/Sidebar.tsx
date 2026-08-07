@@ -6,13 +6,13 @@ import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Level } from '@/types/resource';
 import { readableLevels } from '@/lib/access';
-import { useLibrary } from './MockLibraryProvider';
-import { useSession } from './MockSessionProvider';
+import { useLibrary } from './LibraryProvider';
+import { useSession } from './SessionProvider';
 
 const SEMESTERS: (1 | 2)[] = [1, 2];
 
 interface SidebarProps {
-  activeLevel: Level;
+  activeLevel: Level | null;
   onSelectLevel: (level: Level) => void;
   open: boolean;
   onClose: () => void;
@@ -25,7 +25,7 @@ export default function Sidebar({ activeLevel, onSelectLevel, open, onClose }: S
   // Read scope (design doc §3): student/rep see only their own level here;
   // super-admin sees all four.
   const LEVELS = readableLevels(session);
-  const [expanded, setExpanded] = useState<Set<Level>>(new Set([activeLevel]));
+  const [expanded, setExpanded] = useState<Set<Level>>(new Set(activeLevel ? [activeLevel] : []));
   const [collapsed, setCollapsed] = useState(false);
 
   const toggleExpanded = (level: Level) => {

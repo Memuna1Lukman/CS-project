@@ -3,9 +3,15 @@
 > **Working title — rename to whatever your department prefers.**
 > A centralized, searchable library of academic materials for a single university department, replacing the "search WhatsApp forever" workflow.
 
-**Version:** 1.2 · **Scope:** KNUST Computer Science Department, Levels 100–400
+**Version:** 1.3 · **Scope:** KNUST Computer Science Department, Levels 100–400
 **Team:** 2 founders (super-admins) + course reps (uploaders) · **Build method:** AI agents
 **Budget:** GHS 0 / month (all free tiers)
+
+### Changelog (v1.2 → v1.3)
+- **Student level is now auto-computed from the index number (supersedes v1.1's "never derive authorization from a self-entered index number").** A 7-digit KNUST index number encodes its entry year in its last two digits; the level is computed deterministically as `((academicBaseYear - entryYear) + 1) * 100`, where `academicBaseYear` rolls over each year on a configurable `ACADEMIC_YEAR_START_MONTH` (default October) — see `lib/knustLevel.ts`. Applied automatically at onboarding for **STUDENT accounts only**; reps/admins are unaffected (rep access is governed entirely by `RepScope`, assigned by a super-admin, never by index number).
+- **Capped to this app's 100–400 range.** A computed level outside that range (implying a future entry year, or a graduated/postgraduate student) is **not** auto-applied — the account's level stays unset and is flagged for a super-admin to assign manually via `/admin/users`. A super-admin can always override any computed level, and can trigger a one-off recalculation for accounts whose index number was captured before this feature existed.
+- **Admins can now provision a student account directly** (KNUST email + index number, level auto-computed) as a sign-in-failure fallback, ahead of the student's first real magic-link sign-in.
+- **Reps now land on a dedicated `/rep` dashboard** as their effective home, surfacing their assigned-level courses with quick upload access. Admins have a persistent sidebar across all `/admin/*` pages plus additional record-style stat tiles (student/rep counts) — no charts or trend analytics; `docs/UI-SPEC.md`'s "no analytics content" rule is unchanged.
 
 ### Changelog (v1.1 → v1.2)
 - **Reads are now LEVEL-SCOPED (Option B).** A signed-in **Student** or **Course Rep** sees only their **own level's** courses and resources; **Super-Admins** see all levels. Previously reads were open across all levels — that is now changed by design. Writes remain level-scoped for reps. Enforced **server-side**, not just hidden in the UI.
@@ -121,7 +127,7 @@ flowchart TD
 - **Provider:** Auth.js **Email (passwordless) provider**, restricted to the `@st.knust.edu.gh` domain at sign-in. Control of a KNUST mailbox = proof of enrolment, since only KNUST issues those addresses.
 - **Sessions:** managed by Auth.js (your "ship securely & fast" choice) — a long `maxAge` with rolling renewal means one sign-in lasts. **No hand-rolled access/refresh tokens**, so none of the token-rotation footguns.
 - **Role resolution & read scope:** on login, the email is checked against the rep/admin list; otherwise the session is a plain student. The session carries the user's **level scope** — a student's own level, a rep's assigned level(s), or "all" for super-admins — and every read is filtered against it server-side.
-- **Index number:** collected once at first login as profile data. A student's level is an **administrator-assigned entitlement** until an authoritative KNUST roster integration exists; never derive authorization from a self-entered index number. The email is the enrolment gate.
+- **Index number:** collected once at first login as profile data. A student's level is now **auto-computed** from the index number's embedded entry year (v1.3, `lib/knustLevel.ts`) — deterministic, not self-declared, and capped to the 100–400 range this app supports; results outside that range are left unset for a super-admin to assign manually. A super-admin can always override any computed level via `/admin/users`. The email remains the actual enrolment gate — this only determines *which* level within an already-verified KNUST account.
 
 > Confirm the exact student email domain before building (expected `@st.knust.edu.gh`). If postgraduate or some cohorts use a different sub-domain, allow those too.
 

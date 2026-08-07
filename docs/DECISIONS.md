@@ -27,3 +27,17 @@
   localStorage, and role/scope rules are enforced INSIDE provider reads AND
   mutations (mirroring the future server checks), so pages never bypass them
   and swapping to real Appendix B endpoints touches only the providers
+- SUPERSEDES the above / design doc v1.1 §4: Student level is NOW
+  AUTO-COMPUTED server-side from a validated 7-digit KNUST index number
+  (entry-year + academic-calendar formula, lib/knustLevel.ts), applied
+  automatically at onboarding for STUDENT-role accounts only. Capped to this
+  app's 100-400 range — anything outside that is left unset for admin review,
+  never auto-applied. Reps/admins are never auto-leveled; rep elevation and
+  level-scope assignment remain exclusively a super-admin action via
+  /admin/users, and a super-admin can always override a computed level.
+- Admins can provision a student account directly (email + index number,
+  level auto-computed) as a sign-in-failure fallback.
+- Reps land on /rep (a dedicated dashboard) as their home instead of the
+  generic course-browse page. Admins get a persistent sidebar across all
+  /admin/* pages plus more StatCard-style record counts (students, reps) —
+  still no charts/trend analytics, that rule stays locked (see UI-SPEC.md).

@@ -3,50 +3,12 @@
 import { Download, ExternalLink } from 'lucide-react';
 import { Resource } from '@/types/resource';
 import { RESOURCE_TYPE_BADGE_CLASSES, RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
-import { useLibrary } from './MockLibraryProvider';
-
-function triggerDownload(url: string, fileName: string) {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
 
 export default function ResourceRow({ resource }: { resource: Resource }) {
-  const { incrementDownloadCount } = useLibrary();
   const isExternal = Boolean(resource.externalUrl);
 
-  // TODO(backend): GET /api/resources/:id/download — verify session, check
-  // status = ACTIVE, increment downloadCount, redirect to a short-lived
-  // signed R2 URL. Here the mock store holds the file bytes (or, for seeded
-  // demo resources with no real bytes, a generated placeholder file).
   const handleAction = () => {
-    incrementDownloadCount(resource.id);
-
-    if (resource.externalUrl) {
-      window.open(resource.externalUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    if (resource.fileDataUrl) {
-      triggerDownload(resource.fileDataUrl, resource.fileName ?? `${resource.title}.bin`);
-      return;
-    }
-
-    // Seeded demo resource: no stored bytes, so download a placeholder.
-    const placeholder = new Blob(
-      [
-        `${resource.title}\n${resource.courseCode} — ${resource.courseTitle}\n` +
-          `${RESOURCE_TYPE_LABELS[resource.type]} · ${resource.academicYear}\n\n` +
-          `This is seeded demo data; the real file lives in R2 once the backend exists.\n`,
-      ],
-      { type: 'text/plain' }
-    );
-    const url = URL.createObjectURL(placeholder);
-    triggerDownload(url, `${resource.title}.txt`);
-    URL.revokeObjectURL(url);
+    window.location.assign(`/api/resources/${encodeURIComponent(resource.id)}/download`);
   };
 
   return (

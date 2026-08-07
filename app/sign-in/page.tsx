@@ -1,59 +1,45 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { MailCheck } from 'lucide-react';
 import PageShell from '@/components/PageShell';
-import { useSession } from '@/components/MockSessionProvider';
-import { useLibrary } from '@/components/MockLibraryProvider';
-import type { MockUser } from '@/types/resource';
 
 const EMAIL_DOMAIN = '@st.knust.edu.gh';
+// TEMPORARY(dev-only): mirrors the gmail.com allowance in lib/auth.ts so the
+// form doesn't block testing email delivery. Remove before deployment.
+const ALLOWED_EMAIL_DOMAINS = [EMAIL_DOMAIN, '@gmail.com'];
+
+// NextAuth redirects back to this page (pages.signIn in lib/auth.ts doubles
+// as the error page) with ?error=<code> when the magic link fails to verify.
+const CALLBACK_ERROR_MESSAGES: Record<string, string> = {
+  Verification:
+    'That link expired, was already used, or was opened automatically by your email app before you clicked it. Request a new one below.',
+  AccessDenied: 'Sign-in was denied for that address. Use your KNUST student email.',
+  Configuration: 'Sign-in is temporarily misconfigured. Try again shortly.',
+};
 
 export default function SignInPage() {
-  const router = useRouter();
-  const { signIn } = useSession();
-  const { users } = useLibrary();
+  const searchParams = useSearchParams();
+  const callbackError = searchParams.get('error');
   const [email, setEmail] = useState('');
   const [touched, setTouched] = useState(false);
   const [sent, setSent] = useState(false);
   const [inactiveError, setInactiveError] = useState(false);
 
   const trimmed = email.trim();
-  const isValid = trimmed.toLowerCase().endsWith(EMAIL_DOMAIN) && trimmed.length > EMAIL_DOMAIN.length;
+  const lower = trimmed.toLowerCase();
+  const isValid = ALLOWED_EMAIL_DOMAINS.some((domain) => lower.endsWith(domain) && trimmed.length > domain.length);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
     if (!isValid) return;
 
-    // TODO(backend): wire to Auth.js Email provider at /api/auth/* (see Appendix B) —
-    // sends a real magic link / OTP to the KNUST mailbox instead of this mock confirmation.
-    setInactiveError(false);
-    setSent(true);
-  };
-
-  const handleOpenLink = () => {
-    const normalized = trimmed.toLowerCase();
-    // TODO(backend): replace this lookup with a real Auth.js magic-link
-    // callback + Prisma User lookup (see design doc §4, Appendix B).
-    const found = users.find((u) => u.email.toLowerCase() === normalized);
-
-    if (found && found.status === 'INACTIVE') {
-      setInactiveError(true);
-      return;
-    }
-
-    const user: MockUser = found ?? {
-      email: normalized,
-      name: normalized.split('@')[0],
-      role: 'STUDENT',
-      level: 100,
-      indexNumber: '',
-      status: 'ACTIVE',
-    };
-    signIn(user);
-    router.push(user.indexNumber ? '/' : '/onboarding');
+    const result = await signIn('email', { email: trimmed.toLowerCase(), callbackUrl: '/', redirect: false });
+    setInactiveError(Boolean(result?.error));
+    setSent(!result?.error);
   };
 
   if (sent) {
@@ -78,16 +64,6 @@ export default function SignInPage() {
             </p>
           )}
 
-          {/* TODO(backend): demo-only shortcut — remove once Auth.js magic-link
-              callback (/api/auth/callback/email) actually completes sign-in. */}
-          <button
-            type="button"
-            onClick={handleOpenLink}
-            className="mt-5 w-full min-h-11 px-4 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold"
-          >
-            Open the link (demo)
-          </button>
-
           <button
             type="button"
             onClick={() => {
@@ -110,6 +86,12 @@ export default function SignInPage() {
         <p className="mt-1.5 text-sm text-[var(--text-muted)]">
           Sign in with your KNUST student email — no password needed.
         </p>
+
+        {callbackError && (
+          <p className="mt-4 text-sm text-[var(--text-primary)] bg-[var(--surface-2)] rounded-xl px-3 py-2.5" role="alert">
+            {CALLBACK_ERROR_MESSAGES[callbackError] ?? 'That sign-in link didn\'t work. Request a new one below.'}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-5">
           <label

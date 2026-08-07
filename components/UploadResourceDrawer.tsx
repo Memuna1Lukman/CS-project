@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Drawer from './Drawer';
-import { useLibrary } from './MockLibraryProvider';
+import { useLibrary } from './LibraryProvider';
 import { useToast } from './ToastProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
-import { formatBytes, MAX_FILE_BYTES, readFileAsDataUrl, validateFile } from '@/lib/upload';
+import { formatBytes, MAX_FILE_BYTES, validateFile } from '@/lib/upload';
 import type { Course, ResourceType } from '@/types/resource';
 
 const RESOURCE_TYPES = Object.keys(RESOURCE_TYPE_LABELS) as ResourceType[];
@@ -71,24 +71,14 @@ export default function UploadResourceDrawer({
     setTouched(true);
     if (!isValid || uploading) return;
 
-    // TODO(backend): POST /api/resources — multipart file upload to R2, or a
-    // plain link resource; server sets uploadedBy from the session and
-    // re-runs the §3 scope check (Appendix B).
     setUploading(true);
     try {
-      const fileDataUrl = file ? await readFileAsDataUrl(file) : undefined;
-      const result = addResource({
+      const result = await addResource({
         title: title.trim(),
-        courseCode: course.code,
-        courseTitle: course.title,
-        level: course.level,
-        semester: course.semester,
+        courseId: course.id,
         type,
         academicYear: academicYear.trim(),
-        fileName: file?.name,
-        fileSize: file ? formatBytes(file.size) : undefined,
-        mimeType: file?.type,
-        fileDataUrl,
+        file: file ?? undefined,
         externalUrl: link.trim() || undefined,
       });
 
@@ -101,7 +91,7 @@ export default function UploadResourceDrawer({
       toast(`Uploaded "${title.trim()}" to ${course.code}.`);
       handleClose();
     } catch {
-      toast('Could not read that file. Try a different one.', 'error');
+      toast('Upload could not be completed. Try again.', 'error');
       setUploading(false);
     }
   };
@@ -165,13 +155,13 @@ export default function UploadResourceDrawer({
           <input
             id="upload-file"
             type="file"
-            accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.zip"
+            accept=".pdf,.docx,.pptx"
             onChange={handleFileChange}
             aria-describedby="upload-file-hint"
             className="w-full text-sm text-[var(--text-primary)] file:mr-3 file:min-h-9 file:px-3 file:rounded-full file:border-0 file:bg-[var(--surface-2)] file:text-[var(--text-primary)] file:text-xs file:font-semibold"
           />
           <p id="upload-file-hint" className="mt-1.5 text-xs text-[var(--text-subtle)]">
-            PDF, Word, PowerPoint, Excel, text, image, or ZIP — up to {formatBytes(MAX_FILE_BYTES)}.
+            PDF, DOCX, or PPTX — up to {formatBytes(MAX_FILE_BYTES)}.
           </p>
           {fileError && (
             <p className="mt-1.5 text-xs text-[var(--text-primary)]" role="alert">

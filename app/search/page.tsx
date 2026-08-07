@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search as SearchIcon } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import CourseCard from '@/components/CourseCard';
 import ResourceRow from '@/components/ResourceRow';
-import { useLibrary } from '@/components/MockLibraryProvider';
+import { useLibrary } from '@/components/LibraryProvider';
 
 function ResultTag({
   code,
@@ -36,12 +36,15 @@ export default function SearchPage() {
   const q = searchParams.get('q') ?? '';
   const { courses, resources } = useLibrary();
   const [query, setQuery] = useState(q);
+  const [prevQ, setPrevQ] = useState(q);
 
   // Keep the input in sync when arriving/navigating with a new ?q= (e.g. the
-  // TopBar search), without clobbering further typing on this page.
-  useEffect(() => {
+  // TopBar search), without clobbering further typing on this page. Adjusted
+  // during render (React's recommended pattern) instead of in an effect.
+  if (q !== prevQ) {
+    setPrevQ(q);
     setQuery(q);
-  }, [q]);
+  }
 
   const trimmed = query.trim().toLowerCase();
 

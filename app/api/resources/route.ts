@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { canWriteCourse, jsonError, requireActiveUser, resourceMetadata, safeExternalUrl, validationError } from '@/lib/api';
+import { canWriteCourse, jsonError, requireActiveUser, resourceMetadata, resourceReadWhere, safeExternalUrl, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { deleteResourceFile, uploadResourceFile } from '@/lib/storage';
 import { validateUploadedFile } from '@/lib/fileValidation';
@@ -8,6 +8,8 @@ export const runtime = 'nodejs';
 
 const querySchema = z.object({
   mine: z.enum(['true']).optional(),
+  scope: z.enum(['readable']).optional(),
+  courseCode: z.string().trim().max(30).optional(),
 });
 
 export async function GET(request: Request) {
@@ -15,10 +17,10 @@ export async function GET(request: Request) {
   if (!user) return jsonError('Authentication required', 401);
   const query = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!query.success) return validationError(query.error);
-  if (!query.data.mine && user.role !== 'SUPER_ADMIN') return jsonError('Super-admin access required', 403);
+  if (!query.data.mine && !query.data.scope && user.role !== 'SUPER_ADMIN') return jsonError('Super-admin access required', 403);
 
   return Response.json(await prisma.resource.findMany({
-    where: query.data.mine ? { uploadedById: user.id } : {},
+    where: query.data.mine ? { uploadedById: user.id } : query.data.scope ? { status: 'ACTIVE', ...resourceReadWhere(user), ...(query.data.courseCode ? { course: { code: query.data.courseCode.toUpperCase() } } : {}) } : {},
     include: { course: { select: { code: true, title: true, level: true, semester: true } } },
     orderBy: { createdAt: 'desc' },
   }));

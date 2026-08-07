@@ -4,7 +4,6 @@ export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   SLIDES: 'Slides',
   PAST_QUESTION: 'Past Question',
   LAB_MANUAL: 'Lab Manual',
-  BOOK: 'Book',
   NOTES: 'Notes',
   OTHER: 'Other',
 };
@@ -15,7 +14,6 @@ export const RESOURCE_TYPE_BADGE_CLASSES: Record<ResourceType, string> = {
   SLIDES: 'bg-[var(--type-slides-soft)] text-[var(--type-slides)]',
   PAST_QUESTION: 'bg-[var(--type-past-question-soft)] text-[var(--type-past-question)]',
   LAB_MANUAL: 'bg-[var(--type-lab-manual-soft)] text-[var(--type-lab-manual)]',
-  BOOK: 'bg-[var(--type-book-soft)] text-[var(--type-book)]',
   NOTES: 'bg-[var(--type-notes-soft)] text-[var(--type-notes)]',
   OTHER: 'bg-[var(--type-other-soft)] text-[var(--type-other)]',
 };

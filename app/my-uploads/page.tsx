@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import PageShell from '@/components/PageShell';
-import { useLibrary } from '@/components/MockLibraryProvider';
-import { useRequireRole } from '@/components/MockSessionProvider';
+import { useLibrary } from '@/components/LibraryProvider';
+import { useRequireRole } from '@/components/SessionProvider';
 import { useToast } from '@/components/ToastProvider';
 import { RESOURCE_TYPE_BADGE_CLASSES, RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 
 // TODO(backend): GET /api/courses/:code/resources filtered by uploadedById,
 // DELETE /api/resources/:id for soft-delete (rep/admin, scope-checked — see
-// Appendix B). This reads/writes the in-memory MockLibraryProvider instead.
+// Appendix B). This reads/writes the in-memory LibraryProvider instead.
 export default function MyUploadsPage() {
   const { session, permitted } = useRequireRole(['REP', 'SUPER_ADMIN']);
   const { resources, removeResource } = useLibrary();
@@ -18,14 +18,14 @@ export default function MyUploadsPage() {
 
   if (!permitted) return null;
 
-  const handleRemove = (id: string, title: string) => {
-    const result = removeResource(id);
+  const handleRemove = async (id: string, title: string) => {
+    const result = await removeResource(id);
     if (result.ok) toast(`Removed "${title}".`);
     else toast(result.error, 'error');
   };
 
   const myUploads = resources.filter(
-    (r) => r.status === 'ACTIVE' && session && r.uploadedBy === session.email
+    (r) => r.status === 'ACTIVE' && session && r.uploadedBy === session.id
   );
 
   const byCourse = new Map<string, typeof myUploads>();

@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { BookOpen, Inbox, ShieldAlert, Users } from 'lucide-react';
-import PageShell from '@/components/PageShell';
+import AdminPageShell from '@/components/AdminPageShell';
 import StatCard from '@/components/StatCard';
-import { useLibrary } from '@/components/MockLibraryProvider';
-import { useRequireRole } from '@/components/MockSessionProvider';
+import { useLibrary } from '@/components/LibraryProvider';
+import { useRequireRole } from '@/components/SessionProvider';
 
 const ADMIN_SECTIONS = [
   { href: '/admin/courses', label: 'Manage courses', icon: BookOpen },
@@ -22,22 +22,28 @@ export default function AdminOverviewPage() {
 
   const activeResources = resources.filter((r) => r.status === 'ACTIVE').length;
   const openRequests = requests.filter((r) => r.status === 'OPEN').length;
+  const students = users.filter((u) => u.role === 'STUDENT').length;
+  const reps = users.filter((u) => u.role === 'REP').length;
 
   return (
-    <PageShell>
+    <AdminPageShell>
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Admin</h1>
       <p className="mt-1 text-sm text-[var(--text-muted)]">
         Department overview for super-admins.
       </p>
 
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
         <StatCard label="Courses" value={courses.length} />
         <StatCard label="Resources" value={activeResources} />
         <StatCard label="Users" value={users.length} />
+        <StatCard label="Students" value={students} />
+        <StatCard label="Reps" value={reps} />
         <StatCard label="Open requests" value={openRequests} />
       </div>
 
-      <ul className="mt-6 space-y-2">
+      {/* Desktop navigation lives in AdminSidebar; this list is the only way
+          to reach admin sub-pages on mobile, where the sidebar is hidden. */}
+      <ul className="mt-6 space-y-2 md:hidden">
         {ADMIN_SECTIONS.map((section) => (
           <li key={section.href}>
             <Link
@@ -50,6 +56,6 @@ export default function AdminOverviewPage() {
           </li>
         ))}
       </ul>
-    </PageShell>
+    </AdminPageShell>
   );
 }

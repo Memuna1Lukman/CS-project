@@ -3,25 +3,43 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageShell from '@/components/PageShell';
-import { useSession } from '@/components/MockSessionProvider';
+import { useSession } from '@/components/SessionProvider';
+import { useToast } from '@/components/ToastProvider';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { updateSession } = useSession();
+  const { refresh } = useSession();
+  const toast = useToast();
   const [indexNumber, setIndexNumber] = useState('');
   const [touched, setTouched] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const trimmed = indexNumber.trim();
-  const isValid = /^\d{6,8}$/.test(trimmed);
+  const isValid = /^\d{7}$/.test(trimmed);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
-    if (!isValid) return;
+    if (!isValid || submitting) return;
 
-    // TODO(backend): PATCH /api/me with { indexNumber } (see Appendix B).
-    updateSession({ indexNumber: trimmed });
-    router.push('/');
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/me', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ indexNumber: trimmed }) });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(body?.error || 'Could not save your index number. Try again.');
+        setSubmitting(false);
+        return;
+      }
+      if (body?.levelNotice) toast(body.levelNotice);
+      await refresh();
+      router.push('/');
+    } catch {
+      setError('Could not save your index number. Try again.');
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -45,6 +63,7 @@ export default function OnboardingPage() {
             inputMode="numeric"
             autoComplete="off"
             autoFocus
+            maxLength={7}
             value={indexNumber}
             onChange={(e) => setIndexNumber(e.target.value)}
             onBlur={() => setTouched(true)}
@@ -55,16 +74,21 @@ export default function OnboardingPage() {
           />
           {touched && !isValid && (
             <p id="index-number-error" className="mt-1.5 text-xs text-[var(--text-muted)]">
-              Enter a valid 6–8 digit index number.
+              Enter a valid 7-digit index number.
+            </p>
+          )}
+          {error && (
+            <p className="mt-1.5 text-xs text-[var(--text-primary)]" role="alert">
+              {error}
             </p>
           )}
 
           <button
             type="submit"
             className="mt-5 w-full min-h-11 px-4 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold disabled:opacity-50"
-            disabled={touched && !isValid}
+            disabled={(touched && !isValid) || submitting}
           >
-            Continue
+            {submitting ? 'Saving…' : 'Continue'}
           </button>
         </form>
       </div>

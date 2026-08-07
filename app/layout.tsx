@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
-import { MockSessionProvider } from "@/components/MockSessionProvider";
-import { MockLibraryProvider } from "@/components/MockLibraryProvider";
+import { SessionProvider } from "@/components/SessionProvider";
+import { LibraryProvider } from "@/components/LibraryProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 import "./globals.css";
 
@@ -49,11 +49,11 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <MockSessionProvider>
-          <MockLibraryProvider>
+        <SessionProvider>
+          <LibraryProvider>
             <ToastProvider>{children}</ToastProvider>
-          </MockLibraryProvider>
-        </MockSessionProvider>
+          </LibraryProvider>
+        </SessionProvider>
       </body>
     </html>
   );
