@@ -1,13 +1,10 @@
 'use client';
 
-import PageShell from '@/components/PageShell';
-import { useLibrary } from '@/components/MockLibraryProvider';
-import { useRequireRole } from '@/components/MockSessionProvider';
+import AdminPageShell from '@/components/AdminPageShell';
+import { useLibrary } from '@/components/LibraryProvider';
+import { useRequireRole } from '@/components/SessionProvider';
 import { useToast } from '@/components/ToastProvider';
 import type { RequestStatus } from '@/types/resource';
-import EmptyState from '@/components/EmptyState';
-import PageHeader from '@/components/PageHeader';
-import { Inbox } from 'lucide-react';
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
   OPEN: 'Open',
@@ -17,7 +14,6 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
 
 const STATUS_ACTIONS: RequestStatus[] = ['OPEN', 'FULFILLED', 'DISMISSED'];
 
-// TODO(backend): wire to GET /api/requests, PATCH /api/requests/:id
 export default function AdminRequestsPage() {
   const { permitted } = useRequireRole(['SUPER_ADMIN']);
   const { requests, updateRequestStatus } = useLibrary();
@@ -32,20 +28,19 @@ export default function AdminRequestsPage() {
   };
 
   return (
-    <PageShell>
-      <PageHeader eyebrow="Administration" title="Material requests" description="Students’ “I can’t find this” requests — your coverage radar." />
+    <AdminPageShell>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Material requests</h1>
+      <p className="mt-1 text-sm text-[var(--text-muted)]">
+        Students&apos; &quot;I can&apos;t find this&quot; requests — your coverage radar.
+      </p>
 
       {requests.length === 0 ? (
-        <div className="mt-6"><EmptyState icon={Inbox} title="No material requests" description="Requests will appear here when students need help finding something." /></div>
+        <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
+          No requests yet.
+        </div>
       ) : (
-        <div className="mt-5 space-y-6">
-          {STATUS_ACTIONS.map((status) => {
-            const group = requests.filter((request) => request.status === status);
-            if (!group.length) return null;
-            return <section key={status}>
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">{STATUS_LABELS[status]} <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--text-primary)]">{group.length}</span></h2>
-              <div className="space-y-2.5">
-          {group.map((request) => (
+        <div className="mt-5 space-y-2.5">
+          {requests.map((request) => (
             <div
               key={request.id}
               className="bg-[var(--surface)] rounded-2xl p-5 shadow-[0_1px_3px_var(--shadow)]"
@@ -62,7 +57,9 @@ export default function AdminRequestsPage() {
 
                 <span
                   className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                    'bg-[var(--surface-2)] text-[var(--text-muted)]'
+                    request.status === 'OPEN'
+                      ? 'bg-[var(--accent)] text-[var(--accent-fg)]'
+                      : 'bg-[var(--surface-2)] text-[var(--text-muted)]'
                   }`}
                 >
                   {STATUS_LABELS[request.status]}
@@ -83,11 +80,8 @@ export default function AdminRequestsPage() {
               </div>
             </div>
           ))}
-              </div>
-            </section>;
-          })}
         </div>
       )}
-    </PageShell>
+    </AdminPageShell>
   );
 }

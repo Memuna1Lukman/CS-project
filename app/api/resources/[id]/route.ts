@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { audit, canWriteCourse, jsonError, parseId, requireActiveUser, resourceTypes, validationError } from '@/lib/api';
+import { canWriteCourse, jsonError, parseId, requireActiveUser, resourceTypes, safeExternalUrl, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
-const editSchema = z.object({ title: z.string().trim().min(2).max(180).optional(), type: z.enum(resourceTypes).optional(), academicYear: z.string().regex(/^\d{4}\/\d{4}$/).nullable().optional(), externalUrl: z.string().url().max(2048).nullable().optional() });
+const editSchema = z.object({ title: z.string().trim().min(2).max(180).optional(), type: z.enum(resourceTypes).optional(), academicYear: z.string().regex(/^\d{4}\/\d{4}$/).optional(), externalUrl: z.string().url().max(2048).optional() });
 
 async function editableResource(rawId: string, user: Awaited<ReturnType<typeof requireActiveUser>>) {
   const id = parseId(rawId);
@@ -23,10 +23,9 @@ export async function PATCH(request: Request, { params }: Context) {
   const parsed = editSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return validationError(parsed.error);
   if (Object.keys(parsed.data).length === 0) return jsonError('Provide at least one field to update');
+  if (parsed.data.externalUrl && !safeExternalUrl(parsed.data.externalUrl)) return jsonError('Links must use HTTPS and point to an approved provider');
   if (resource.storageKey && 'externalUrl' in parsed.data && parsed.data.externalUrl) return jsonError('A file resource cannot be changed into an external link');
-  const updated = await prisma.resource.update({ where: { id: resource.id }, data: parsed.data });
-  await audit(user.id, 'RESOURCE_UPDATED', 'Resource', resource.id, { fields: Object.keys(parsed.data) });
-  return Response.json(updated);
+  return Response.json(await prisma.resource.update({ where: { id: resource.id }, data: parsed.data }));
 }
 
 export async function DELETE(_: Request, { params }: Context) {
@@ -35,7 +34,5 @@ export async function DELETE(_: Request, { params }: Context) {
   const { id } = await params;
   const resource = await editableResource(id, user);
   if (!resource) return jsonError('Resource not found or you do not have access', 404);
-  const updated = await prisma.resource.update({ where: { id: resource.id }, data: { status: 'REMOVED' } });
-  await audit(user.id, 'RESOURCE_REMOVED', 'Resource', resource.id);
-  return Response.json(updated);
+  return Response.json(await prisma.resource.update({ where: { id: resource.id }, data: { status: 'REMOVED' } }));
 }

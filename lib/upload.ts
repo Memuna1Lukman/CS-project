@@ -4,22 +4,11 @@
 
 export const ALLOWED_MIME_TYPES: Record<string, string> = {
   'application/pdf': 'PDF',
-  'application/msword': 'Word',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
-  'application/vnd.ms-powerpoint': 'PowerPoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
-  'application/vnd.ms-excel': 'Excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
-  'text/plain': 'Text',
-  'image/png': 'Image',
-  'image/jpeg': 'Image',
-  'application/zip': 'ZIP',
-  'application/x-zip-compressed': 'ZIP',
 };
 
-// Kept small because the mock store persists file bytes to localStorage
-// (~5 MB quota). The real R2-backed limit can be far larger.
-export const MAX_FILE_BYTES = 2 * 1024 * 1024;
+export const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
 export function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -28,10 +17,10 @@ export function formatBytes(bytes: number): string {
 
 export function validateFile(file: File): string | null {
   if (!ALLOWED_MIME_TYPES[file.type]) {
-    return 'That file type is not allowed. Use PDF, Word, PowerPoint, Excel, text, image, or ZIP.';
+    return 'That file type is not allowed. Use PDF, DOCX, or PPTX.';
   }
   if (file.size > MAX_FILE_BYTES) {
-    return `File is too large (${formatBytes(file.size)}). The demo limit is ${formatBytes(MAX_FILE_BYTES)}.`;
+    return `File is too large (${formatBytes(file.size)}). The limit is ${formatBytes(MAX_FILE_BYTES)}.`;
   }
   return null;
 }

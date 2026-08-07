@@ -1,4 +1,4 @@
-import { audit, canReadLevel, jsonError, parseId, requireActiveUser, validationError, courseInput } from '@/lib/api';
+import { canReadLevel, jsonError, parseId, requireActiveUser, validationError, courseInput } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
@@ -29,9 +29,7 @@ export async function PATCH(request: Request, { params }: Context) {
   if (Object.keys(parsed.data).length === 0) return jsonError('Provide at least one field to update');
   try {
     const where = parseId(code) ? { id: parseId(code)! } : { code: decodeURIComponent(code).toUpperCase() };
-    const course = await prisma.course.update({ where, data: parsed.data });
-    await audit(user.id, 'COURSE_UPDATED', 'Course', course.id, { fields: Object.keys(parsed.data) });
-    return Response.json(course);
+    return Response.json(await prisma.course.update({ where, data: parsed.data }));
   } catch {
     return jsonError('Course not found or course code already exists', 404);
   }

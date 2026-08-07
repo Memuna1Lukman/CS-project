@@ -3,42 +3,52 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageShell from '@/components/PageShell';
-import { useSession } from '@/components/MockSessionProvider';
-import type { Level } from '@/types/resource';
+import { useSession } from '@/components/SessionProvider';
+import { useToast } from '@/components/ToastProvider';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { updateSession } = useSession();
+  const { refresh } = useSession();
+  const toast = useToast();
   const [indexNumber, setIndexNumber] = useState('');
-  const [level, setLevel] = useState<Level | ''>('');
   const [touched, setTouched] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const trimmed = indexNumber.trim();
-  const isValid = /^\d{6,8}$/.test(trimmed) && level !== '';
+  const isValid = /^\d{7}$/.test(trimmed);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
-    if (!isValid) return;
+    if (!isValid || submitting) return;
 
-    // TODO(backend): PATCH /api/me with { indexNumber } (see Appendix B).
-    const result = await updateSession({ indexNumber: trimmed, level: level as Level });
-    if (result.ok) router.push('/');
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/me', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ indexNumber: trimmed }) });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(body?.error || 'Could not save your index number. Try again.');
+        setSubmitting(false);
+        return;
+      }
+      if (body?.levelNotice) toast(body.levelNotice);
+      await refresh();
+      router.push('/');
+    } catch {
+      setError('Could not save your index number. Try again.');
+      setSubmitting(false);
+    }
   };
 
   return (
     <PageShell>
       <div className="max-w-sm mx-auto mt-6 bg-[var(--surface)] rounded-3xl p-6 shadow-[0_2px_8px_var(--shadow)]">
-        <div className="mb-5 flex items-center gap-2" aria-label="Onboarding step 1 of 2">
-          <span className="h-1.5 flex-1 rounded-full bg-[var(--accent)]" />
-          <span className="h-1.5 flex-1 rounded-full bg-[var(--surface-2)]" />
-          <span className="ml-1 text-xs font-medium text-[var(--text-muted)]">Step 1 of 2</span>
-        </div>
         <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Welcome</h1>
         <p className="mt-1.5 text-sm text-[var(--text-muted)]">
           Enter your index number so we can route you to the right level.
         </p>
-        <p className="mt-3 rounded-2xl bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--text-muted)]">Next, we’ll confirm your library access and course level.</p>
 
         <form onSubmit={handleSubmit} className="mt-5">
           <label
@@ -53,6 +63,7 @@ export default function OnboardingPage() {
             inputMode="numeric"
             autoComplete="off"
             autoFocus
+            maxLength={7}
             value={indexNumber}
             onChange={(e) => setIndexNumber(e.target.value)}
             onBlur={() => setTouched(true)}
@@ -63,22 +74,21 @@ export default function OnboardingPage() {
           />
           {touched && !isValid && (
             <p id="index-number-error" className="mt-1.5 text-xs text-[var(--text-muted)]">
-              Enter a valid 6–8 digit index number.
+              Enter a valid 7-digit index number.
             </p>
           )}
-
-          <label htmlFor="student-level" className="mt-4 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">Current level</label>
-          <select id="student-level" value={level} onChange={(e) => setLevel(Number(e.target.value) as Level)} className="w-full h-11 px-3 rounded-xl bg-[var(--surface-2)] text-sm text-[var(--text-primary)] outline-none focus:border-[var(--focus)]">
-            <option value="">Select your level</option>
-            {[100, 200, 300, 400].map((item) => <option key={item} value={item}>Level {item}</option>)}
-          </select>
+          {error && (
+            <p className="mt-1.5 text-xs text-[var(--text-primary)]" role="alert">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
             className="mt-5 w-full min-h-11 px-4 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-sm font-semibold disabled:opacity-50"
-            disabled={touched && !isValid}
+            disabled={(touched && !isValid) || submitting}
           >
-            Continue
+            {submitting ? 'Saving…' : 'Continue'}
           </button>
         </form>
       </div>

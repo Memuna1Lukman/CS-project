@@ -10,6 +10,9 @@ export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
+    // Deferred to a microtask so setState isn't called synchronously within
+    // the effect body — the inline theme script has already set the DOM
+    // attribute before hydration, this just mirrors it into React state.
     queueMicrotask(() => {
       const current = document.documentElement.dataset.theme;
       setTheme(current === 'dark' ? 'dark' : 'light');

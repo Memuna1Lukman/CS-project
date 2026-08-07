@@ -54,19 +54,6 @@ export async function canWriteCourse(userId: string, role: string, courseId: num
   return Boolean(await prisma.repScope.findUnique({ where: { userId_level: { userId, level: course.level } } }));
 }
 
-type ScopedUser = NonNullable<Awaited<ReturnType<typeof currentUser>>>;
-
-/** The only source of truth for resource visibility. Never accept a level from the client. */
-export function readableLevels(user: ScopedUser): Level[] {
-  if (user.role === 'SUPER_ADMIN') return [...levels];
-  if (user.role === 'REP') return user.scopes.map((scope) => scope.level).filter((level): level is Level => levels.includes(level as Level));
-  return user.level && levels.includes(user.level as Level) ? [user.level as Level] : [];
-}
-
-export function canReadLevel(user: ScopedUser, level: number) {
-  return readableLevels(user).includes(level as Level);
-}
-
 export async function audit(actorId: string | null | undefined, action: string, entity: string, entityId: string | number, metadata?: Prisma.InputJsonValue) {
   await prisma.auditLog.create({ data: { actorId: actorId ?? null, action, entity, entityId: String(entityId), metadata } });
 }
@@ -74,6 +61,38 @@ export async function audit(actorId: string | null | undefined, action: string, 
 export async function requireActiveUser() {
   const user = await currentUser();
   return user?.status === 'ACTIVE' ? user : null;
+}
+
+type ActiveUser = NonNullable<Awaited<ReturnType<typeof requireActiveUser>>>;
+
+/** The only source of truth for resource visibility. Never accept a level from the client. */
+export function readableLevels(user: ActiveUser): Level[] {
+  if (user.role === 'SUPER_ADMIN') return [...levels];
+  if (user.role === 'REP') return user.scopes.map((scope) => scope.level).filter((level): level is Level => levels.includes(level as Level));
+  return user.level && levels.includes(user.level as Level) ? [user.level as Level] : [];
+}
+
+export function courseReadWhere(user: ActiveUser) {
+  return user.role === 'SUPER_ADMIN' ? {} : { level: { in: readableLevels(user) } };
+}
+
+export function resourceReadWhere(user: ActiveUser) {
+  return user.role === 'SUPER_ADMIN' ? {} : { course: { level: { in: readableLevels(user) } } };
+}
+
+export function canReadLevel(user: ActiveUser, level: number) {
+  return readableLevels(user).includes(level as Level);
+}
+
+export function safeExternalUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.toLowerCase();
+    return host === 'drive.google.com' || host === 'docs.google.com' || host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtu.be';
+  } catch {
+    return false;
+  }
 }
 
 export function parseId(value: string) {

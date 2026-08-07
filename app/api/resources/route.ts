@@ -1,15 +1,15 @@
 import { z } from 'zod';
-import { audit, canWriteCourse, jsonError, requireActiveUser, resourceMetadata, validationError } from '@/lib/api';
+import { canWriteCourse, jsonError, requireActiveUser, resourceMetadata, resourceReadWhere, safeExternalUrl, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { uploadResourceFile } from '@/lib/storage';
+import { deleteResourceFile, uploadResourceFile } from '@/lib/storage';
+import { validateUploadedFile } from '@/lib/fileValidation';
 
 export const runtime = 'nodejs';
 
-const MAX_FILE_SIZE = 15 * 1024 * 1024;
-const ALLOWED_MIME_TYPES = new Set(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain']);
-
 const querySchema = z.object({
   mine: z.enum(['true']).optional(),
+  scope: z.enum(['readable']).optional(),
+  courseCode: z.string().trim().max(30).optional(),
 });
 
 export async function GET(request: Request) {
@@ -17,11 +17,11 @@ export async function GET(request: Request) {
   if (!user) return jsonError('Authentication required', 401);
   const query = querySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!query.success) return validationError(query.error);
-  if (!query.data.mine && user.role !== 'SUPER_ADMIN') return jsonError('Super-admin access required', 403);
+  if (!query.data.mine && !query.data.scope && user.role !== 'SUPER_ADMIN') return jsonError('Super-admin access required', 403);
 
   return Response.json(await prisma.resource.findMany({
-    where: query.data.mine ? { uploadedById: user.id } : {},
-    include: { course: { select: { code: true, title: true, level: true, semester: true } }, uploadedBy: { select: { email: true } } },
+    where: query.data.mine ? { uploadedById: user.id } : query.data.scope ? { status: 'ACTIVE', ...resourceReadWhere(user), ...(query.data.courseCode ? { course: { code: query.data.courseCode.toUpperCase() } } : {}) } : {},
+    include: { course: { select: { code: true, title: true, level: true, semester: true } } },
     orderBy: { createdAt: 'desc' },
   }));
 }
@@ -39,25 +39,27 @@ export async function POST(request: Request) {
   });
   if (!parsed.success) return validationError(parsed.error);
   if (Boolean(file) === Boolean(parsed.data.externalUrl)) return jsonError('Provide exactly one of file or externalUrl');
+  if (parsed.data.externalUrl && !safeExternalUrl(parsed.data.externalUrl)) return jsonError('Links must use HTTPS and point to an approved provider');
   if (!await canWriteCourse(user.id, user.role, parsed.data.courseId)) return jsonError('You cannot upload to this course', 403);
 
   if (!file) {
-    const resource = await prisma.resource.create({ data: { ...parsed.data, uploadedById: user.id } });
-    await audit(user.id, 'RESOURCE_CREATED', 'Resource', resource.id, { courseId: resource.courseId, source: 'link' });
-    return Response.json(resource, { status: 201 });
+    return Response.json(await prisma.resource.create({ data: { ...parsed.data, uploadedById: user.id } }), { status: 201 });
   }
-  if (file.size === 0 || file.size > MAX_FILE_SIZE) return jsonError('File must be between 1 byte and 15 MB');
-  if (!ALLOWED_MIME_TYPES.has(file.type)) return jsonError('This file type is not allowed');
+  const fileError = await validateUploadedFile(file);
+  if (fileError) return jsonError(fileError);
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const storageKey = `resources/${parsed.data.courseId}/${crypto.randomUUID()}-${safeName}`;
   try {
     await uploadResourceFile(storageKey, file);
-    const resource = await prisma.resource.create({
-      data: { ...parsed.data, externalUrl: undefined, storageKey, fileSize: file.size, mimeType: file.type, uploadedById: user.id },
-    });
-    await audit(user.id, 'RESOURCE_CREATED', 'Resource', resource.id, { courseId: resource.courseId, source: 'file' });
-    return Response.json(resource, { status: 201 });
+    try {
+      return Response.json(await prisma.resource.create({
+        data: { ...parsed.data, externalUrl: undefined, storageKey, fileSize: file.size, mimeType: file.type, uploadedById: user.id },
+      }), { status: 201 });
+    } catch (error) {
+      await deleteResourceFile(storageKey).catch(() => undefined);
+      throw error;
+    }
   } catch (error) {
     console.error('Resource upload failed', error);
     return jsonError('Upload could not be completed', 503);

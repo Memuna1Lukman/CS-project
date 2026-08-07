@@ -1,7 +1,7 @@
 -- Student profile fields are intentionally nullable so existing users can
 -- complete onboarding after this migration is deployed.
+-- "level" already exists (added by 20260806120000_enforce_access_invariants).
 ALTER TABLE "User"
-  ADD COLUMN "level" INTEGER,
   ADD COLUMN "programme" TEXT,
   ADD COLUMN "cohortYear" INTEGER,
   ADD COLUMN "levelConfirmedAt" TIMESTAMP(3);

@@ -5,7 +5,7 @@ export type Level = 100 | 200 | 300 | 400;
 export type Semester = 1 | 2;
 
 export interface Course {
-  id?: number;
+  id: number;
   code: string;
   title: string;
   level: Level;
@@ -17,17 +17,20 @@ export interface Course {
 export type Role = 'STUDENT' | 'REP' | 'SUPER_ADMIN';
 export type UserStatus = 'ACTIVE' | 'INACTIVE';
 
-// Mock signed-in user shape. Mirrors the eventual Auth.js session + Prisma
-// User fields (design doc §6) but is populated entirely from MOCK_USERS.
+// Client-safe representation of the authenticated database user.
 export interface MockUser {
-  id?: string;
+  id: string;
   email: string;
   name: string;
   role: Role;
-  level?: Level;
-  indexNumber?: string;
+  // null means no level has been assigned yet — an admin-only entitlement
+  // (design doc §4), never fabricated client-side.
+  level: Level | null;
+  indexNumber: string;
   programme?: string;
   cohortYear?: number;
+  // A rep's full set of assigned level scopes (RepScope rows); `level` above
+  // still carries their primary/first scope for existing single-level UI.
   scopes?: Level[];
   status: UserStatus;
 }
@@ -54,10 +57,6 @@ export interface Resource {
   storageKey?: string;
   fileName?: string;
   mimeType?: string;
-  // Mock stand-in for the R2 object: the uploaded file's bytes as a base64
-  // data URL so downloads work and survive refresh via localStorage.
-  // TODO(backend): replace with storageKey + GET /api/resources/:id/download.
-  fileDataUrl?: string;
   externalUrl?: string;
   status: ResourceStatus;
   downloadCount: number;

@@ -1,20 +1,16 @@
 import { z } from 'zod';
-import { audit, jsonError, levels, requireActiveUser, validationError } from '@/lib/api';
+import type { Prisma } from '@prisma/client';
+import { jsonError, requireActiveUser, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { computeKnustLevel } from '@/lib/knustLevel';
 
 export const runtime = 'nodejs';
-const schema = z.object({
-  indexNumber: z.string().trim().min(5).max(40).transform((value) => value.toUpperCase()).optional(),
-  level: z.coerce.number().refine((value) => levels.includes(value as (typeof levels)[number]), 'Level must be 100, 200, 300, or 400').optional(),
-  programme: z.string().trim().min(2).max(120).optional(),
-  cohortYear: z.coerce.number().int().min(2000).max(2100).optional(),
-}).refine((data) => Object.keys(data).length > 0, 'Provide at least one profile field');
+const schema = z.object({ indexNumber: z.string().trim().regex(/^\d{7}$/, 'Index number must be exactly 7 digits') });
 
 export async function GET() {
   const user = await requireActiveUser();
   if (!user) return jsonError('Authentication required', 401);
-  // Keep database identifiers and student IDs out of client-facing session data.
-  return Response.json({ id: user.id, name: user.name, email: user.email, role: user.role, status: user.status, indexNumber: user.indexNumber, level: user.level, programme: user.programme, cohortYear: user.cohortYear, levelConfirmedAt: user.levelConfirmedAt, scopes: user.scopes.map(({ level }) => ({ level })) });
+  return Response.json({ id: user.id, name: user.name, email: user.email, role: user.role, status: user.status, indexNumber: user.indexNumber, level: user.level, scopes: user.scopes });
 }
 
 export async function PATCH(request: Request) {
@@ -22,12 +18,28 @@ export async function PATCH(request: Request) {
   if (!user) return jsonError('Authentication required', 401);
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return validationError(parsed.error);
-  if (parsed.data.level && user.role !== 'STUDENT') return jsonError('Only student profiles have a personal level; reps use assigned scopes', 403);
-  if (parsed.data.level && user.levelConfirmedAt) return jsonError('Your level has been confirmed. Ask an admin to change it.', 403);
+
+  const data: Prisma.UserUpdateInput = { indexNumber: parsed.data.indexNumber };
+  let levelNotice: string | undefined;
+
+  // Only auto-compute on true first-time onboarding (no index number on file
+  // yet) — never overwrite a level an admin has since assigned or corrected.
+  if (user.role === 'STUDENT' && user.indexNumber == null) {
+    const result = computeKnustLevel(parsed.data.indexNumber);
+    if (result.status === 'SUCCESS') {
+      data.level = result.level;
+    } else if (result.status === 'FUTURE_ENTRY') {
+      levelNotice = 'We could not determine your level yet from this index number. An admin will assign it shortly.';
+    } else if (result.status === 'BEYOND_SUPPORTED') {
+      levelNotice = 'This index number falls outside the supported 100-400 levels. An admin will review your account.';
+    } else {
+      levelNotice = 'Could not read a level from that index number. An admin will assign it manually.';
+    }
+  }
+
   try {
-    const updated = await prisma.user.update({ where: { id: user.id }, data: parsed.data });
-    await audit(user.id, 'PROFILE_UPDATED', 'User', user.id, { fields: Object.keys(parsed.data) });
-    return Response.json({ name: updated.name, email: updated.email, role: updated.role, status: updated.status, level: updated.level, programme: updated.programme, cohortYear: updated.cohortYear, levelConfirmedAt: updated.levelConfirmedAt });
+    const updated = await prisma.user.update({ where: { id: user.id }, data });
+    return Response.json({ ...updated, levelNotice });
   } catch {
     return jsonError('That index number is already linked to another account', 409);
   }

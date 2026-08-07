@@ -1,28 +1,30 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowRight, BookOpenCheck, FolderOpen } from 'lucide-react';
-import Link from 'next/link';
 import TopBar from '@/components/TopBar';
 import Sidebar from '@/components/Sidebar';
+import BottomNav from '@/components/BottomNav';
 import CourseCard from '@/components/CourseCard';
 import StatCard from '@/components/StatCard';
-import EmptyState from '@/components/EmptyState';
-import PageHeader from '@/components/PageHeader';
-import { CourseGridSkeleton } from '@/components/LoadingSkeletons';
-import RecentMaterialCard from '@/components/RecentMaterialCard';
 import { Level, Semester } from '@/types/resource';
-import { useSession } from '@/components/MockSessionProvider';
-import { useLibrary } from '@/components/MockLibraryProvider';
+import { useSession } from '@/components/SessionProvider';
+import { useLibrary } from '@/components/LibraryProvider';
 
 export default function LibraryPage() {
   const { session } = useSession();
-  const { courses, resources, isLoading } = useLibrary();
+  const { courses } = useLibrary();
   const isAdmin = session?.role === 'SUPER_ADMIN';
-  const [adminLevel, setAdminLevel] = useState<Level>(session?.level ?? 100);
+  // Only super-admins can switch levels (design doc §3: student/rep reads are
+  // locked to their own level). `null` means "no manual override yet" — the
+  // admin's default level then simply tracks the current session.
+  const [manualLevel, setManualLevel] = useState<Level | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const activeLevel: Level = isAdmin ? adminLevel : session?.level ?? 100;
+  // Admins can browse any level regardless of their own `level` field, so
+  // defaulting their switcher to 100 is just a starting point. A student/rep
+  // with no level assigned yet gets `null` here instead of a fabricated
+  // level — see the empty state below.
+  const activeLevel: Level | null = isAdmin ? manualLevel ?? session?.level ?? 100 : session?.level ?? null;
 
   const coursesByLevel = useMemo(
     () => courses.filter((course) => course.level === activeLevel),
@@ -36,14 +38,6 @@ export default function LibraryPage() {
 
   const semesters: Semester[] = [1, 2];
 
-  const recentMaterials = useMemo(
-    () =>
-      resources
-        .filter((resource) => resource.status === 'ACTIVE')
-        .slice(0, 4),
-    [resources]
-  );
-
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)]">
       <TopBar onToggleSidebar={() => setSidebarOpen((v) => !v)} />
@@ -51,30 +45,25 @@ export default function LibraryPage() {
       <div className="flex flex-1 items-start">
         <Sidebar
           activeLevel={activeLevel}
-          onSelectLevel={isAdmin ? setAdminLevel : () => {}}
+          onSelectLevel={isAdmin ? setManualLevel : () => {}}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6">
-          <div className="rounded-3xl bg-[var(--surface)] p-5 shadow-[0_1px_3px_var(--shadow)] sm:p-6">
-            <PageHeader
-              eyebrow={`Your study library · Level ${activeLevel}`}
-              title={`Welcome back, ${session?.name.split(' ')[0] ?? 'student'}.`}
-              description="Pick up where you left off or explore material for this semester."
-              actions={<a href="#courses" className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-2)]">Explore courses</a>}
-            />
-          </div>
+        <main className="flex-1 min-w-0 p-4 sm:p-6 pb-24 md:pb-6">
+          <p className="text-sm text-[var(--text-muted)]">Browse courses and their resources.</p>
+          <h1 className="mt-0.5 text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+            {activeLevel ? `Level ${activeLevel}` : 'Welcome'}
+          </h1>
 
-          {isLoading ? (
-            <div className="mt-6"><CourseGridSkeleton /></div>
+          {activeLevel === null ? (
+            <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
+              Your account doesn&apos;t have a level assigned yet. A department admin needs to
+              set this before you can browse courses — check back soon.
+            </div>
           ) : coursesByLevel.length === 0 ? (
-            <div className="mt-6">
-              <EmptyState
-                icon={FolderOpen}
-                title="Your course library is getting ready"
-                description="Courses for this level have not been added yet. Check back soon or ask your course rep."
-              />
+            <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
+              No courses in this level yet.
             </div>
           ) : (
             <>
@@ -84,49 +73,6 @@ export default function LibraryPage() {
                 <StatCard label="Semesters" value={semesters.length} />
               </div>
 
-              <section className="mt-7">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-subtle)]">
-                      Fresh for you
-                    </p>
-                    <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-primary)]">
-                      Recently added materials
-                    </h2>
-                  </div>
-                  <BookOpenCheck className="mb-1 h-5 w-5 text-[var(--text-muted)]" aria-hidden="true" />
-                </div>
-                {recentMaterials.length ? (
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    {recentMaterials.map((resource) => (
-                      <RecentMaterialCard key={resource.id} resource={resource} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-3">
-                    <EmptyState
-                      icon={BookOpenCheck}
-                      title="No materials yet"
-                      description="New slides, notes, and past questions will appear here as soon as they are shared."
-                    />
-                  </div>
-                )}
-              </section>
-
-              <section className="mt-7">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-subtle)]">Keep going</p>
-                    <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--text-primary)]">Continue studying</h2>
-                  </div>
-                  <Link href="#courses" className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                    All courses <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </div>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">{coursesByLevel.slice(0, 3).map((course) => <CourseCard key={`continue-${course.code}`} course={course} />)}</div>
-              </section>
-
-              <div id="courses">
               {semesters.map((semester) => {
                 const coursesInSem = coursesByLevel.filter((c) => c.semester === semester);
                 if (coursesInSem.length === 0) return null;
@@ -144,21 +90,13 @@ export default function LibraryPage() {
                   </section>
                 );
               })}
-              </div>
             </>
           )}
-
-          <footer className="mt-10 rounded-3xl bg-[var(--surface)] px-5 py-6 shadow-[0_1px_3px_var(--shadow)] sm:flex sm:items-center sm:justify-between sm:px-7">
-            <div>
-              <p className="text-base font-bold tracking-tight">CS Resource Hub</p>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">A calmer place to learn, share, and stay on track.</p>
-            </div>
-            <p className="mt-4 text-xs font-medium text-[var(--text-muted)] sm:mt-0">
-              Made for the CS community
-            </p>
-          </footer>
         </main>
       </div>
+
+      <BottomNav />
     </div>
   );
 }
+

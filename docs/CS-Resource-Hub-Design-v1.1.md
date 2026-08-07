@@ -3,9 +3,15 @@
 > **Working title — rename to whatever your department prefers.**
 > A centralized, searchable library of academic materials for a single university department, replacing the "search WhatsApp forever" workflow.
 
-**Version:** 1.2 · **Scope:** KNUST Computer Science Department, Levels 100–400
+**Version:** 1.3 · **Scope:** KNUST Computer Science Department, Levels 100–400
 **Team:** 2 founders (super-admins) + course reps (uploaders) · **Build method:** AI agents
 **Budget:** GHS 0 / month (all free tiers)
+
+### Changelog (v1.2 → v1.3)
+- **Student level is now auto-computed from the index number (supersedes v1.1's "never derive authorization from a self-entered index number").** A 7-digit KNUST index number encodes its entry year in its last two digits; the level is computed deterministically as `((academicBaseYear - entryYear) + 1) * 100`, where `academicBaseYear` rolls over each year on a configurable `ACADEMIC_YEAR_START_MONTH` (default October) — see `lib/knustLevel.ts`. Applied automatically at onboarding for **STUDENT accounts only**; reps/admins are unaffected (rep access is governed entirely by `RepScope`, assigned by a super-admin, never by index number).
+- **Capped to this app's 100–400 range.** A computed level outside that range (implying a future entry year, or a graduated/postgraduate student) is **not** auto-applied — the account's level stays unset and is flagged for a super-admin to assign manually via `/admin/users`. A super-admin can always override any computed level, and can trigger a one-off recalculation for accounts whose index number was captured before this feature existed.
+- **Admins can now provision a student account directly** (KNUST email + index number, level auto-computed) as a sign-in-failure fallback, ahead of the student's first real magic-link sign-in.
+- **Reps now land on a dedicated `/rep` dashboard** as their effective home, surfacing their assigned-level courses with quick upload access. Admins have a persistent sidebar across all `/admin/*` pages plus additional record-style stat tiles (student/rep counts) — no charts or trend analytics; `docs/UI-SPEC.md`'s "no analytics content" rule is unchanged.
 
 ### Changelog (v1.1 → v1.2)
 - **Reads are now LEVEL-SCOPED (Option B).** A signed-in **Student** or **Course Rep** sees only their **own level's** courses and resources; **Super-Admins** see all levels. Previously reads were open across all levels — that is now changed by design. Writes remain level-scoped for reps. Enforced **server-side**, not just hidden in the UI.
@@ -121,7 +127,7 @@ flowchart TD
 - **Provider:** Auth.js **Email (passwordless) provider**, restricted to the `@st.knust.edu.gh` domain at sign-in. Control of a KNUST mailbox = proof of enrolment, since only KNUST issues those addresses.
 - **Sessions:** managed by Auth.js (your "ship securely & fast" choice) — a long `maxAge` with rolling renewal means one sign-in lasts. **No hand-rolled access/refresh tokens**, so none of the token-rotation footguns.
 - **Role resolution & read scope:** on login, the email is checked against the rep/admin list; otherwise the session is a plain student. The session carries the user's **level scope** — a student's own level, a rep's assigned level(s), or "all" for super-admins — and every read is filtered against it server-side.
-- **Index number:** collected once at first login as profile data (used to auto-route the student to their level and for display/attribution). It is *not* the security gate — the email is.
+- **Index number:** collected once at first login as profile data. A student's level is now **auto-computed** from the index number's embedded entry year (v1.3, `lib/knustLevel.ts`) — deterministic, not self-declared, and capped to the 100–400 range this app supports; results outside that range are left unset for a super-admin to assign manually. A super-admin can always override any computed level via `/admin/users`. The email remains the actual enrolment gate — this only determines *which* level within an already-verified KNUST account.
 
 > Confirm the exact student email domain before building (expected `@st.knust.edu.gh`). If postgraduate or some cohorts use a different sub-domain, allow those too.
 
@@ -192,6 +198,7 @@ erDiagram
         enum role "student, rep, super_admin"
         enum status "active, inactive"
         string indexNumber UK "profile identity"
+        int level "admin-assigned student entitlement"
     }
     REPSCOPE {
         int id PK
@@ -322,7 +329,8 @@ The threat model that actually matters here, now that access is authenticated an
 | **Cross-level access (reads)** | Every read (list, course, resource, download, search) is filtered **server-side** by the user's read scope: students/reps → own level only; super-admins → all. A student requesting an out-of-level course or resource by direct URL/ID is rejected — never rely on the UI hiding it. |
 | **Broken access control / IDOR** | Server-side scope check on every **read and write**: reads verify the resource's level is in the user's read scope; writes require `super_admin` OR (`rep` AND `resource.course.level ∈ rep.scopes`). Never trust a role or level sent by the client. |
 | **Malicious file uploads** | Whitelist mime types + cap size **server-side**; store originals in R2 and never execute them; serve only via short-lived signed URLs. Optional async malware scan. |
-| **Magic-link / login abuse (spam)** | Rate-limit sign-in requests per email and per IP; short link/OTP expiry; single-use tokens. |
+| **Magic-link / login abuse (spam)** | Rate-limit sign-in requests per email and per IP using a shared production store; short link expiry; single-use tokens. A process-local limiter is development-only. |
+| **Untrusted external links** | Permit HTTPS links from an explicit allowlist only; disclose the destination before leaving the platform. |
 | **Rep account compromise** | No passwords to phish; instant deactivation via status flag; full audit trail via `uploadedBy`. |
 | **Copyright liability** | Now materially reduced: content is behind an enrolled-students-only gate (defensible as an internal resource). Keep upload acknowledgment, audit trail, and founder soft-delete/takedown. Prefer lecturer material + past questions; avoid wholesale publisher textbooks. |
 | **SQL injection** | Prisma parameterizes all queries. |

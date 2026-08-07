@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, LogOut, Menu, Search, ShieldCheck, Upload, UserCircle } from 'lucide-react';
+import { LogOut, Menu, Search, ShieldCheck, Upload } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
-import { useSession } from './MockSessionProvider';
+import { useSession } from './SessionProvider';
 import type { Role } from '@/types/resource';
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -21,47 +21,12 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => vo
   const router = useRouter();
   const { session, signOut } = useSession();
   const [query, setQuery] = useState('');
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = query.trim();
     router.push(q ? `/search?q=${encodeURIComponent(q)}` : '/search');
-    setMobileSearchOpen(false);
   };
-
-  if (mobileSearchOpen) {
-    return (
-      <header className="sticky top-0 z-40 flex items-center gap-2 h-16 px-4 bg-[var(--topbar-bg)] text-[var(--topbar-fg)] sm:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileSearchOpen(false)}
-          className={`-ml-1 ${ICON_PILL}`}
-          aria-label="Close search"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-
-        <form role="search" onSubmit={handleSearch} className="flex-1 min-w-0">
-          <label htmlFor="global-search-mobile" className="sr-only">
-            Search courses and resources
-          </label>
-          <div className="relative w-full">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-subtle)]" />
-            <input
-              id="global-search-mobile"
-              type="search"
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search courses, resources..."
-              className="w-full h-11 pl-10 pr-4 rounded-full bg-[var(--surface)] shadow-[0_1px_2px_var(--shadow)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none"
-            />
-          </div>
-        </form>
-      </header>
-    );
-  }
 
   return (
     <header className="sticky top-0 z-40 flex items-center gap-2 sm:gap-3 h-16 px-4 sm:px-6 bg-[var(--topbar-bg)] text-[var(--topbar-fg)]">
@@ -83,15 +48,9 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => vo
         <span className="hidden sm:inline">CS Resource Hub</span>
       </Link>
 
-      {/* Mobile: icon-only trigger that opens the full-row search overlay above */}
-      <button
-        type="button"
-        onClick={() => setMobileSearchOpen(true)}
-        className={`sm:hidden ml-auto ${ICON_PILL}`}
-        aria-label="Search courses and resources"
-      >
-        <Search className="w-5 h-5" />
-      </button>
+      {/* Mobile: search/profile live in BottomNav instead, so just push the
+          remaining controls (theme toggle, sign-in) to the right. */}
+      <div className="flex-1 sm:hidden" />
 
       <form role="search" onSubmit={handleSearch} className="hidden sm:flex flex-1 min-w-0 justify-center px-2">
         <div className="relative w-full max-w-md">
@@ -137,13 +96,9 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => vo
             <span className="min-w-0 flex flex-col leading-tight text-left">
               <span className="text-xs font-semibold truncate">{session.name}</span>
               <span className="text-[10px] text-[var(--text-muted)] truncate">
-                {ROLE_LABELS[session.role]} · Level {session.level}
+                {ROLE_LABELS[session.role]} · {session.level ? `Level ${session.level}` : 'No level yet'}
               </span>
             </span>
-          </Link>
-
-          <Link href="/profile" className={`sm:hidden ${ICON_PILL}`} aria-label="Account">
-            <UserCircle className="w-6 h-6" />
           </Link>
 
           <button type="button" onClick={signOut} aria-label="Sign out" className={`hidden sm:flex ${ICON_PILL}`}>

@@ -18,10 +18,12 @@ async function main() {
     where: { name: 'Computer Science' }, update: {}, create: { name: 'Computer Science' },
   });
 
-  await Promise.all(courses.map(([code, title, level, semester, lecturer]) => prisma.course.upsert({
-    where: { code }, update: { title, level, semester, lecturer, departmentId: department.id },
-    create: { code, title, level, semester, lecturer, departmentId: department.id },
-  })));
+  for (const [code, title, level, semester, lecturer] of courses) {
+    await prisma.course.upsert({
+      where: { code }, update: { title, level, semester, lecturer, departmentId: department.id },
+      create: { code, title, level, semester, lecturer, departmentId: department.id },
+    });
+  }
   console.log(`Seeded ${courses.length} Computer Science courses.`);
 }
 

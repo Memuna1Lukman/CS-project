@@ -1,43 +1,21 @@
 'use client';
 
-import { BookOpen, Download, ExternalLink, FileQuestion, FileStack, Files, FlaskConical, NotebookText, type LucideIcon } from 'lucide-react';
+import { Download, ExternalLink } from 'lucide-react';
 import { Resource } from '@/types/resource';
 import { RESOURCE_TYPE_BADGE_CLASSES, RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 
-const RESOURCE_TYPE_ICONS: Record<Resource['type'], LucideIcon> = {
-  SLIDES: FileStack,
-  PAST_QUESTION: FileQuestion,
-  LAB_MANUAL: FlaskConical,
-  BOOK: BookOpen,
-  NOTES: NotebookText,
-  OTHER: Files,
-  ASSIGNMENT: Files,
-  SOLUTION: Files,
-  OUTLINE: Files,
-  TIMETABLE: Files,
-  LINK: ExternalLink,
-};
-
 export default function ResourceRow({ resource }: { resource: Resource }) {
   const isExternal = Boolean(resource.externalUrl);
-  const TypeIcon = RESOURCE_TYPE_ICONS[resource.type];
 
   const handleAction = () => {
-    window.open(resource.externalUrl ?? `/api/resources/${resource.id}/download`, '_blank', 'noopener,noreferrer');
+    window.location.assign(`/api/resources/${encodeURIComponent(resource.id)}/download`);
   };
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 bg-[var(--surface)] rounded-2xl px-3.5 py-3 shadow-[0_1px_3px_var(--shadow)]">
       <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl sm:hidden ${RESOURCE_TYPE_BADGE_CLASSES[resource.type]}`}
-        aria-label={RESOURCE_TYPE_LABELS[resource.type]}
+        className={`hidden sm:inline-flex justify-center shrink-0 w-[108px] text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${RESOURCE_TYPE_BADGE_CLASSES[resource.type]}`}
       >
-        <TypeIcon className="h-5 w-5" aria-hidden="true" />
-      </span>
-      <span
-        className={`hidden sm:inline-flex items-center justify-center gap-1.5 shrink-0 w-[118px] text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${RESOURCE_TYPE_BADGE_CLASSES[resource.type]}`}
-      >
-        <TypeIcon className="h-3.5 w-3.5" aria-hidden="true" />
         {RESOURCE_TYPE_LABELS[resource.type]}
       </span>
 

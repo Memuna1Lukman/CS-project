@@ -8,8 +8,8 @@ import FilterPills from '@/components/FilterPills';
 import ResourceRow from '@/components/ResourceRow';
 import UploadResourceDrawer from '@/components/UploadResourceDrawer';
 import RequestMaterialDrawer from '@/components/RequestMaterialDrawer';
-import { useLibrary } from '@/components/MockLibraryProvider';
-import { useSession } from '@/components/MockSessionProvider';
+import { useLibrary } from '@/components/LibraryProvider';
+import { useSession } from '@/components/SessionProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
 import EmptyState from '@/components/EmptyState';
 import PageHeader from '@/components/PageHeader';
@@ -20,7 +20,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
   const courseCode = decodeURIComponent(code);
 
   const { session } = useSession();
-  const { courses, resources: allResources, isLoading } = useLibrary();
+  const { courses, resources: allResources, loading: isLoading } = useLibrary();
 
   const course = courses.find((c) => c.code.toLowerCase() === courseCode.toLowerCase());
   const resources = useMemo(
