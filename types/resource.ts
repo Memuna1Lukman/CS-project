@@ -1,10 +1,11 @@
-export type ResourceType = 'SLIDES' | 'PAST_QUESTION' | 'LAB_MANUAL' | 'BOOK' | 'NOTES' | 'OTHER';
+export type ResourceType = 'SLIDES' | 'NOTES' | 'PAST_QUESTION' | 'ASSIGNMENT' | 'SOLUTION' | 'LAB_MANUAL' | 'BOOK' | 'OUTLINE' | 'TIMETABLE' | 'LINK' | 'OTHER';
 export type ResourceStatus = 'ACTIVE' | 'REMOVED';
 
 export type Level = 100 | 200 | 300 | 400;
 export type Semester = 1 | 2;
 
 export interface Course {
+  id?: number;
   code: string;
   title: string;
   level: Level;
@@ -19,11 +20,15 @@ export type UserStatus = 'ACTIVE' | 'INACTIVE';
 // Mock signed-in user shape. Mirrors the eventual Auth.js session + Prisma
 // User fields (design doc §6) but is populated entirely from MOCK_USERS.
 export interface MockUser {
+  id?: string;
   email: string;
   name: string;
   role: Role;
-  level: Level;
-  indexNumber: string;
+  level?: Level;
+  indexNumber?: string;
+  programme?: string;
+  cohortYear?: number;
+  scopes?: Level[];
   status: UserStatus;
 }
 
@@ -46,6 +51,7 @@ export interface Resource {
   type: ResourceType;
   academicYear: string;
   fileSize?: string;
+  storageKey?: string;
   fileName?: string;
   mimeType?: string;
   // Mock stand-in for the R2 object: the uploaded file's bytes as a base64

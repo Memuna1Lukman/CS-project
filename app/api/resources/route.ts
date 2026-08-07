@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { canWriteCourse, jsonError, requireActiveUser, resourceMetadata, validationError } from '@/lib/api';
+import { audit, canWriteCourse, jsonError, requireActiveUser, resourceMetadata, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { uploadResourceFile } from '@/lib/storage';
 
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
   return Response.json(await prisma.resource.findMany({
     where: query.data.mine ? { uploadedById: user.id } : {},
-    include: { course: { select: { code: true, title: true, level: true, semester: true } } },
+    include: { course: { select: { code: true, title: true, level: true, semester: true } }, uploadedBy: { select: { email: true } } },
     orderBy: { createdAt: 'desc' },
   }));
 }
@@ -42,7 +42,9 @@ export async function POST(request: Request) {
   if (!await canWriteCourse(user.id, user.role, parsed.data.courseId)) return jsonError('You cannot upload to this course', 403);
 
   if (!file) {
-    return Response.json(await prisma.resource.create({ data: { ...parsed.data, uploadedById: user.id } }), { status: 201 });
+    const resource = await prisma.resource.create({ data: { ...parsed.data, uploadedById: user.id } });
+    await audit(user.id, 'RESOURCE_CREATED', 'Resource', resource.id, { courseId: resource.courseId, source: 'link' });
+    return Response.json(resource, { status: 201 });
   }
   if (file.size === 0 || file.size > MAX_FILE_SIZE) return jsonError('File must be between 1 byte and 15 MB');
   if (!ALLOWED_MIME_TYPES.has(file.type)) return jsonError('This file type is not allowed');
@@ -51,9 +53,11 @@ export async function POST(request: Request) {
   const storageKey = `resources/${parsed.data.courseId}/${crypto.randomUUID()}-${safeName}`;
   try {
     await uploadResourceFile(storageKey, file);
-    return Response.json(await prisma.resource.create({
+    const resource = await prisma.resource.create({
       data: { ...parsed.data, externalUrl: undefined, storageKey, fileSize: file.size, mimeType: file.type, uploadedById: user.id },
-    }), { status: 201 });
+    });
+    await audit(user.id, 'RESOURCE_CREATED', 'Resource', resource.id, { courseId: resource.courseId, source: 'file' });
+    return Response.json(resource, { status: 201 });
   } catch (error) {
     console.error('Resource upload failed', error);
     return jsonError('Upload could not be completed', 503);

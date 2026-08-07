@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import { useLibrary } from '@/components/MockLibraryProvider';
 import { useRequireRole } from '@/components/MockSessionProvider';
 import { useToast } from '@/components/ToastProvider';
 import { RESOURCE_TYPE_BADGE_CLASSES, RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
+import FilterPills from '@/components/FilterPills';
+import EmptyState from '@/components/EmptyState';
+import PageHeader from '@/components/PageHeader';
 
 // TODO(backend): GET /api/courses/:code/resources filtered by uploadedById,
 // DELETE /api/resources/:id for soft-delete (rep/admin, scope-checked — see
@@ -15,11 +19,12 @@ export default function MyUploadsPage() {
   const { session, permitted } = useRequireRole(['REP', 'SUPER_ADMIN']);
   const { resources, removeResource } = useLibrary();
   const toast = useToast();
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
   if (!permitted) return null;
 
-  const handleRemove = (id: string, title: string) => {
-    const result = removeResource(id);
+  const handleRemove = async (id: string, title: string) => {
+    const result = await removeResource(id);
     if (result.ok) toast(`Removed "${title}".`);
     else toast(result.error, 'error');
   };
@@ -27,9 +32,13 @@ export default function MyUploadsPage() {
   const myUploads = resources.filter(
     (r) => r.status === 'ACTIVE' && session && r.uploadedBy === session.email
   );
+  const typeOptions = Array.from(new Set(myUploads.map((resource) => RESOURCE_TYPE_LABELS[resource.type])));
+  const filteredUploads = myUploads.filter(
+    (resource) => !typeFilter || RESOURCE_TYPE_LABELS[resource.type] === typeFilter
+  );
 
   const byCourse = new Map<string, typeof myUploads>();
-  for (const resource of myUploads) {
+  for (const resource of filteredUploads) {
     const list = byCourse.get(resource.courseCode) ?? [];
     list.push(resource);
     byCourse.set(resource.courseCode, list);
@@ -37,21 +46,18 @@ export default function MyUploadsPage() {
 
   return (
     <PageShell>
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">My uploads</h1>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
-        Resources you&apos;ve uploaded this session, grouped by course.
-      </p>
+      <PageHeader eyebrow="Contributor workspace" title="My uploads" description="Resources you&apos;ve uploaded this session, grouped by course." actions={<Link href="/" className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-2)]">Browse courses</Link>} />
+      {myUploads.length > 0 && (
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-2 text-xs"><span className="rounded-full bg-[var(--accent-subtle)] px-3 py-1.5 font-semibold text-[var(--text-primary)]">{myUploads.length} active</span><span className="rounded-full bg-[var(--surface-2)] px-3 py-1.5 font-semibold text-[var(--text-muted)]">{new Set(myUploads.map((resource) => resource.courseCode)).size} courses</span></div>
+          <FilterPills label="Type" options={typeOptions} active={typeFilter} onChange={setTypeFilter} />
+        </div>
+      )}
 
       {myUploads.length === 0 ? (
-        <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
-          You haven&apos;t uploaded anything yet. Open a course in your level and use
-          &quot;Upload material&quot;.
-          <div className="mt-3">
-            <Link href="/" className="text-sm font-medium text-[var(--text-primary)] underline">
-              Back to library
-            </Link>
-          </div>
-        </div>
+        <div className="mt-6"><EmptyState icon={Trash2} title="No uploads yet" description="Open a course in your level and use “Upload material” to share your first resource." action={<Link href="/" className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-fg)]">Browse courses</Link>} /></div>
+      ) : filteredUploads.length === 0 ? (
+        <div className="mt-6"><EmptyState icon={Trash2} title="No uploads match this type" description="Try another material type to see more of your uploads." action={<button type="button" onClick={() => setTypeFilter(null)} className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-fg)]">Clear filter</button>} /></div>
       ) : (
         <div className="mt-6 space-y-6">
           {Array.from(byCourse.entries()).map(([courseCode, uploads]) => (

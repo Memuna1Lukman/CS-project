@@ -53,11 +53,30 @@ model User {
   role          Role       @default(STUDENT)
   status        UserStatus @default(ACTIVE)
   indexNumber   String?    @unique
+  level         Int?
+  programme     String?
+  cohortYear    Int?
+  levelConfirmedAt DateTime?
   accounts      Account[]
   sessions      Session[]
   scopes        RepScope[]
   resources     Resource[]
+  auditLogs     AuditLog[] @relation("AuditActor")
   createdAt     DateTime   @default(now())
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  entity    String
+  entityId  String
+  metadata  Json?
+  actorId   String?
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorId, createdAt])
 }
 
 model Account {

@@ -17,7 +17,7 @@ Full product design and rationale: [`docs/CS-Resource-Hub-Design-v1.1.md`](docs/
 - A real Neon Postgres database needs to be provisioned and migrated (`prisma/migrations/` is ready to run).
 - Local `.env` values (database, Auth.js secret, R2 credentials, email provider) are required and are **not** committed — see Getting Started.
 
-**Not started:** production email delivery testing (KNUST/Zimbra deliverability), rate limiting, and the Version 2 features listed in the design doc (§13).
+**Still required before production:** production email delivery testing (KNUST/Zimbra deliverability), a distributed rate-limit store, malware scanning, and the Version 2 features listed in the design doc (§13).
 
 ## Tech stack
 

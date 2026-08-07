@@ -8,6 +8,9 @@ import { useLibrary } from '@/components/MockLibraryProvider';
 import { useRequireRole } from '@/components/MockSessionProvider';
 import { useToast } from '@/components/ToastProvider';
 import type { Course, Level, Semester } from '@/types/resource';
+import FilterPills from '@/components/FilterPills';
+import PageHeader from '@/components/PageHeader';
+import EmptyState from '@/components/EmptyState';
 
 const LEVELS: Level[] = [100, 200, 300, 400];
 const SEMESTERS: Semester[] = [1, 2];
@@ -20,9 +23,9 @@ function EditCourseForm({ course, onDone }: { course: Course; onDone: () => void
   const [level, setLevel] = useState<Level>(course.level);
   const [semester, setSemester] = useState<Semester>(course.semester);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = updateCourse(course.code, {
+    const result = await updateCourse(course.code, {
       title: title.trim() || course.title,
       lecturer: lecturer.trim() || undefined,
       level,
@@ -108,12 +111,12 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
 
   const isValid = code.trim().length > 0 && title.trim().length > 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
     if (!isValid) return;
 
-    const result = addCourse({
+    const result = await addCourse({
       code: code.trim(),
       title: title.trim(),
       lecturer: lecturer.trim() || undefined,
@@ -220,26 +223,30 @@ export default function AdminCoursesPage() {
   const { courses } = useLibrary();
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [levelFilter, setLevelFilter] = useState<string | null>(null);
+  const [semesterFilter, setSemesterFilter] = useState<string | null>(null);
 
   if (!permitted) return null;
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Manage courses</h1>
-        <button
+      <PageHeader eyebrow="Administration" title="Manage courses" description="Create, organize, and update the course catalog." actions={<button
           type="button"
           onClick={() => setAddOpen(true)}
           className="shrink-0 flex items-center gap-1.5 min-h-11 px-3.5 rounded-full text-xs font-semibold bg-[var(--accent)] text-[var(--accent-fg)]"
         >
           <Plus className="w-3.5 h-3.5" aria-hidden="true" />
           Add course
-        </button>
+        </button>} />
+
+      <div className="mt-5 space-y-2">
+        <FilterPills label="Level" options={LEVELS.map(String)} active={levelFilter} onChange={setLevelFilter} />
+        <FilterPills label="Semester" options={SEMESTERS.map(String)} active={semesterFilter} onChange={setSemesterFilter} />
       </div>
 
       {LEVELS.map((level) => {
         const levelCourses = courses
-          .filter((c) => c.level === level)
+          .filter((c) => c.level === level && (!levelFilter || String(c.level) === levelFilter) && (!semesterFilter || String(c.semester) === semesterFilter))
           .sort((a, b) => a.code.localeCompare(b.code));
         if (levelCourses.length === 0) return null;
 
@@ -287,6 +294,7 @@ export default function AdminCoursesPage() {
           </section>
         );
       })}
+      {courses.length === 0 && <div className="mt-6"><EmptyState icon={Plus} title="No courses yet" description="Create the first course to start organizing materials by level and semester." action={<button type="button" onClick={() => setAddOpen(true)} className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-fg)]">Add course</button>} /></div>}
 
       <Drawer open={addOpen} onClose={() => setAddOpen(false)} title="Add course">
         <AddCourseForm onDone={() => setAddOpen(false)} />

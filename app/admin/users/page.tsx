@@ -1,10 +1,14 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import PageShell from '@/components/PageShell';
 import { useLibrary } from '@/components/MockLibraryProvider';
 import { useRequireRole } from '@/components/MockSessionProvider';
 import { useToast } from '@/components/ToastProvider';
 import type { Level, MockUser, Role } from '@/types/resource';
+import PageHeader from '@/components/PageHeader';
+import EmptyState from '@/components/EmptyState';
+import { Users } from 'lucide-react';
 
 const LEVELS: Level[] = [100, 200, 300, 400];
 const ROLES: Role[] = ['STUDENT', 'REP', 'SUPER_ADMIN'];
@@ -19,29 +23,33 @@ export default function AdminUsersPage() {
   const { permitted } = useRequireRole(['SUPER_ADMIN']);
   const { users, updateUser } = useLibrary();
   const toast = useToast();
+  const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<Role | 'ALL'>('ALL');
+  const visibleUsers = useMemo(() => users.filter((user) => (roleFilter === 'ALL' || user.role === roleFilter) && `${user.name} ${user.email}`.toLowerCase().includes(query.trim().toLowerCase())), [users, query, roleFilter]);
 
   if (!permitted) return null;
 
-  const handleUpdate = (
+  const handleUpdate = async (
     user: MockUser,
     patch: Partial<Pick<MockUser, 'role' | 'level' | 'status'>>,
     message: string
   ) => {
-    const result = updateUser(user.email, patch);
+    const result = await updateUser(user.email, patch);
     if (result.ok) toast(message);
     else toast(result.error, 'error');
   };
 
   return (
     <PageShell>
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Manage users / reps</h1>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
-        Grant rep role, assign a level scope, or deactivate an account. Deactivating never
-        removes their uploads.
-      </p>
+      <PageHeader eyebrow="Administration" title="Manage users and reps" description="Grant rep roles, assign a level scope, or deactivate an account. Deactivating never removes uploads." />
 
-      <div className="mt-5 space-y-2.5">
-        {users.map((user) => {
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search people…" aria-label="Search users" className="h-11 flex-1 rounded-full bg-[var(--surface)] px-4 text-sm text-[var(--text-primary)] shadow-[0_1px_2px_var(--shadow)] outline-none focus:ring-2 focus:ring-[var(--focus)]" />
+        <div className="flex gap-2 overflow-x-auto">{(['ALL', ...ROLES] as const).map((role) => <button key={role} type="button" onClick={() => setRoleFilter(role)} className={`min-h-11 shrink-0 rounded-full px-3 text-xs font-semibold ${roleFilter === role ? 'bg-[var(--accent)] text-[var(--accent-fg)]' : 'bg-[var(--surface)] text-[var(--text-muted)] shadow-[0_1px_2px_var(--shadow)]'}`}>{role === 'ALL' ? 'All roles' : ROLE_LABELS[role]}</button>)}</div>
+      </div>
+
+      {visibleUsers.length === 0 ? <div className="mt-6"><EmptyState icon={Users} title="No users found" description="Try clearing the search or switching to another role filter." action={<button type="button" onClick={() => { setQuery(''); setRoleFilter('ALL'); }} className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-fg)]">Clear filters</button>} /></div> : <div className="mt-5 space-y-2.5">
+        {visibleUsers.map((user) => {
           const inactive = user.status === 'INACTIVE';
           return (
             <div
@@ -124,7 +132,7 @@ export default function AdminUsersPage() {
             </div>
           );
         })}
-      </div>
+      </div>}
     </PageShell>
   );
 }

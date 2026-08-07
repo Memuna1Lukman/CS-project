@@ -1,11 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import PageShell from '@/components/PageShell';
 import { useLibrary } from '@/components/MockLibraryProvider';
 import { useRequireRole } from '@/components/MockSessionProvider';
 import { useToast } from '@/components/ToastProvider';
 import { RESOURCE_TYPE_BADGE_CLASSES, RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
+import FilterPills from '@/components/FilterPills';
+import PageHeader from '@/components/PageHeader';
+import EmptyState from '@/components/EmptyState';
 
 // TODO(backend): wire to GET /api/resources (all, super-admin only) and
 // DELETE /api/resources/:id (soft-delete, scope-checked — see Appendix B).
@@ -15,11 +19,12 @@ export default function AdminResourcesPage() {
   const { permitted } = useRequireRole(['SUPER_ADMIN']);
   const { resources, removeResource } = useLibrary();
   const toast = useToast();
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   if (!permitted) return null;
 
-  const handleRemove = (id: string, title: string) => {
-    const result = removeResource(id);
+  const handleRemove = async (id: string, title: string) => {
+    const result = await removeResource(id);
     if (result.ok) toast(`Removed "${title}".`);
     else toast(result.error, 'error');
   };
@@ -29,21 +34,19 @@ export default function AdminResourcesPage() {
       ? a.title.localeCompare(b.title)
       : a.courseCode.localeCompare(b.courseCode)
   );
+  const filtered = sorted.filter((resource) => !statusFilter || resource.status === statusFilter);
 
   return (
     <PageShell>
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">Moderate resources</h1>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">
-        Every uploaded resource across all courses, regardless of who uploaded it.
-      </p>
+      <PageHeader eyebrow="Administration" title="Moderate resources" description="Every uploaded resource across all courses, regardless of who uploaded it." />
 
-      {sorted.length === 0 ? (
-        <div className="mt-6 text-center py-10 text-sm text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-2xl">
-          No resources yet.
-        </div>
+      <div className="mt-5"><FilterPills label="Status" options={['ACTIVE', 'REMOVED']} active={statusFilter} onChange={setStatusFilter} /></div>
+
+      {filtered.length === 0 ? (
+        <div className="mt-6"><EmptyState icon={Trash2} title="No resources to moderate" description="Resources will appear here as soon as they are uploaded." /></div>
       ) : (
         <div className="mt-5 space-y-2">
-          {sorted.map((resource) => {
+          {filtered.map((resource) => {
             const removed = resource.status === 'REMOVED';
             return (
               <div
@@ -75,7 +78,7 @@ export default function AdminResourcesPage() {
                   className={`hidden sm:inline shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                     removed
                       ? 'bg-[var(--surface-2)] text-[var(--text-muted)]'
-                      : 'bg-[var(--accent)] text-[var(--accent-fg)]'
+                      : 'bg-[var(--surface-2)] text-[var(--text-muted)]'
                   }`}
                 >
                   {removed ? 'Removed' : 'Active'}

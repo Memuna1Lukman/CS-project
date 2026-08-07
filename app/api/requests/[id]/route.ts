@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { jsonError, parseId, requireActiveUser, validationError } from '@/lib/api';
+import { audit, jsonError, parseId, requireActiveUser, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
@@ -16,7 +16,9 @@ export async function PATCH(request: Request, { params }: Context) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return validationError(parsed.error);
   try {
-    return Response.json(await prisma.materialRequest.update({ where: { id }, data: parsed.data }));
+    const materialRequest = await prisma.materialRequest.update({ where: { id }, data: parsed.data });
+    await audit(user.id, 'MATERIAL_REQUEST_UPDATED', 'MaterialRequest', id, { status: parsed.data.status });
+    return Response.json(materialRequest);
   } catch {
     return jsonError('Material request not found', 404);
   }

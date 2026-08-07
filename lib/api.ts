@@ -1,10 +1,12 @@
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const levels = [100, 200, 300, 400] as const;
 export const resourceTypes = ['SLIDES', 'NOTES', 'PAST_QUESTION', 'ASSIGNMENT', 'SOLUTION', 'LAB_MANUAL', 'BOOK', 'OUTLINE', 'TIMETABLE', 'LINK', 'OTHER'] as const;
+export type Level = (typeof levels)[number];
 
 export const courseInput = z.object({
   code: z.string().trim().min(3).max(30).transform((value) => value.toUpperCase()),
@@ -50,6 +52,23 @@ export async function canWriteCourse(userId: string, role: string, courseId: num
   if (!course) return false;
 
   return Boolean(await prisma.repScope.findUnique({ where: { userId_level: { userId, level: course.level } } }));
+}
+
+type ScopedUser = NonNullable<Awaited<ReturnType<typeof currentUser>>>;
+
+/** The only source of truth for resource visibility. Never accept a level from the client. */
+export function readableLevels(user: ScopedUser): Level[] {
+  if (user.role === 'SUPER_ADMIN') return [...levels];
+  if (user.role === 'REP') return user.scopes.map((scope) => scope.level).filter((level): level is Level => levels.includes(level as Level));
+  return user.level && levels.includes(user.level as Level) ? [user.level as Level] : [];
+}
+
+export function canReadLevel(user: ScopedUser, level: number) {
+  return readableLevels(user).includes(level as Level);
+}
+
+export async function audit(actorId: string | null | undefined, action: string, entity: string, entityId: string | number, metadata?: Prisma.InputJsonValue) {
+  await prisma.auditLog.create({ data: { actorId: actorId ?? null, action, entity, entityId: String(entityId), metadata } });
 }
 
 export async function requireActiveUser() {

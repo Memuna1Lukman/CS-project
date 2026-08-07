@@ -10,9 +10,11 @@ export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    const current = document.documentElement.dataset.theme;
-    setTheme(current === 'dark' ? 'dark' : 'light');
-    setMounted(true);
+    queueMicrotask(() => {
+      const current = document.documentElement.dataset.theme;
+      setTheme(current === 'dark' ? 'dark' : 'light');
+      setMounted(true);
+    });
   }, []);
 
   const toggle = () => {
