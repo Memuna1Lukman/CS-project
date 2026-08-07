@@ -54,6 +54,11 @@ function SessionState({ children }: { children: React.ReactNode }) {
   // asked for.
   const needsOnboarding = Boolean(session && !session.indexNumber);
 
+  // A signed-in user (onboarding already done) has no business seeing the
+  // sign-in form again — e.g. a stale tab, browser back button, or a bookmark
+  // pointed at /sign-in from before they signed in.
+  const isSignedInOnSignIn = Boolean(session && !needsOnboarding && pathname === '/sign-in');
+
   // /rep is a rep's effective home — send them there instead of the generic
   // course-browse page. Checked after onboarding so a first-time rep still
   // completes that step first.
@@ -69,10 +74,14 @@ function SessionState({ children }: { children: React.ReactNode }) {
       router.replace('/onboarding');
       return;
     }
+    if (isSignedInOnSignIn) {
+      router.replace('/');
+      return;
+    }
     if (isRepOnHome) {
       router.replace('/rep');
     }
-  }, [ready, session, needsOnboarding, isRepOnHome, pathname, router]);
+  }, [ready, session, needsOnboarding, isSignedInOnSignIn, isRepOnHome, pathname, router]);
 
   const signOut = () => {
     void authSignOut({ callbackUrl: '/sign-in' });
@@ -86,6 +95,7 @@ function SessionState({ children }: { children: React.ReactNode }) {
     !ready ||
     (!session && pathname !== '/sign-in') ||
     (session !== null && needsOnboarding && pathname !== '/onboarding') ||
+    isSignedInOnSignIn ||
     isRepOnHome;
   if (blocked) {
     return <div className="min-h-screen bg-[var(--bg)]" />;
