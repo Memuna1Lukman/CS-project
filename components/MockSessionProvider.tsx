@@ -1,113 +1,95 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { SessionProvider, signIn as authSignIn, signOut as authSignOut, useSession as useAuthSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
-import { MockUser, Role } from '@/types/resource';
-
-const STORAGE_KEY = 'mockSession';
+import type { Level, MockUser } from '@/types/resource';
 
 interface SessionContextValue {
   session: MockUser | null;
-  signIn: (user: MockUser) => void;
-  signOut: () => void;
-  updateSession: (patch: Partial<MockUser>) => void;
+  signIn: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  signOut: () => Promise<void>;
+  updateSession: (patch: Partial<MockUser>) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-function readStoredSession(): MockUser | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as MockUser) : null;
-  } catch {
-    return null;
-  }
-}
-
-// Client-only mock of a real session: no server, no cookies, just localStorage.
-// TODO(backend): replace entirely with Auth.js sessions + Prisma User lookups
-// (see design doc §4, §6). This provider and the redirect below are stopgaps
-// so role/level gating can be demoed before real auth exists.
-export function MockSessionProvider({ children }: { children: React.ReactNode }) {
+function SessionBridge({ children }: { children: React.ReactNode }) {
+  const { data, status, update } = useAuthSession();
   const router = useRouter();
   const pathname = usePathname();
-  const [session, setSession] = useState<MockUser | null>(null);
-  const [ready, setReady] = useState(false);
+  const [profile, setProfile] = useState<MockUser | null>(null);
 
   useEffect(() => {
-    setSession(readStoredSession());
-    setReady(true);
-  }, []);
+    if (status !== 'authenticated') return;
+    fetch('/api/me', { cache: 'no-store' })
+      .then(async (response) => (response.ok ? response.json() : null))
+      .then((me) => {
+        if (!me) return;
+        setProfile({
+          email: me.email,
+          name: me.name ?? me.email.split('@')[0],
+          role: me.role,
+          level: me.level ?? undefined,
+          indexNumber: me.indexNumber ?? '',
+          status: me.status,
+          programme: me.programme,
+          cohortYear: me.cohortYear,
+          scopes: me.scopes?.map((scope: { level: Level }) => scope.level) ?? [],
+        });
+      })
+      .catch(() => setProfile(null));
+  }, [status, data?.user?.email]);
 
   useEffect(() => {
-    if (!ready) return;
-    if (!session && pathname !== '/sign-in') {
-      router.replace('/sign-in');
-    }
-  }, [ready, session, pathname, router]);
+    if (status === 'unauthenticated' && pathname !== '/sign-in') router.replace('/sign-in');
+  }, [pathname, router, status]);
 
-  const signIn = (user: MockUser) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    setSession(user);
-  };
-
-  const signOut = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setSession(null);
-    router.replace('/sign-in');
-  };
-
-  const updateSession = (patch: Partial<MockUser>) => {
-    setSession((prev) => {
-      if (!prev) return prev;
-      // Role changes represent an administrative action in the real app.
-      // Keep the demo from allowing a normal account to self-promote.
-      if (patch.role !== undefined && prev.role !== 'SUPER_ADMIN') {
-        const safePatch = { ...patch };
-        delete safePatch.role;
-        const next = { ...prev, ...safePatch };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        return next;
+  const value = useMemo<SessionContextValue>(() => ({
+    session: status === 'authenticated' ? profile : null,
+    signIn: async (email) => {
+      try {
+        const result = await authSignIn('email', { email: email.trim().toLowerCase(), redirect: false });
+        return result?.error ? { ok: false, error: result.error } : { ok: true };
+      } catch {
+        // Auth.js may reject before it can return its normal result when the
+        // server responds with a non-JSON 5xx response (for example, an
+        // unavailable database or mail server).
+        return { ok: false, error: 'Sign-in is temporarily unavailable. Please try again later.' };
       }
-      const next = { ...prev, ...patch };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-  };
+    },
+    signOut: async () => { await authSignOut({ redirect: false }); router.replace('/sign-in'); },
+    updateSession: async (patch) => {
+      const body = Object.fromEntries(Object.entries(patch).filter(([key]) => !['role', 'status', 'scopes'].includes(key)));
+      if (!Object.keys(body).length) return { ok: false, error: 'Role and status can only be changed by an administrator.' };
+      const response = await fetch('/api/me', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) return { ok: false, error: payload.error ?? 'Profile update failed.' };
+      setProfile((current) => current ? { ...current, ...patch } : current);
+      await update();
+      return { ok: true };
+    },
+  }), [profile, router, status, update]);
 
-  const value: SessionContextValue = { session, signIn, signOut, updateSession };
-
-  // Avoid a flash of protected content before localStorage has been read, and
-  // while the redirect-to-sign-in effect above is in flight.
-  const blocked = !ready || (!session && pathname !== '/sign-in');
-  if (blocked) {
-    return <div className="min-h-screen bg-[var(--bg)]" />;
-  }
-
+  if (status === 'loading' || (status === 'authenticated' && !profile)) return <div className="min-h-screen bg-[var(--bg)]" />;
+  if (status === 'unauthenticated' && pathname !== '/sign-in') return <div className="min-h-screen bg-[var(--bg)]" />;
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
-export function useSession() {
-  const ctx = useContext(SessionContext);
-  if (!ctx) {
-    throw new Error('useSession must be used within a MockSessionProvider');
-  }
-  return ctx;
+export function MockSessionProvider({ children }: { children: React.ReactNode }) {
+  return <SessionProvider refetchOnWindowFocus={false}><SessionBridge>{children}</SessionBridge></SessionProvider>;
 }
 
-// Client-side role gate for a route: redirects to "/" when the signed-in mock
-// session's role isn't one of `allowed`. Real enforcement still has to happen
-// server-side once Auth.js + Prisma land (design doc §3).
-export function useRequireRole(allowed: Role[]) {
+export function useSession() {
+  const value = useContext(SessionContext);
+  if (!value) throw new Error('useSession must be used within MockSessionProvider');
+  return value;
+}
+
+export function useRequireRole(allowed: MockUser['role'][]) {
   const { session } = useSession();
   const router = useRouter();
   const permitted = Boolean(session && allowed.includes(session.role));
-
-  useEffect(() => {
-    if (session && !permitted) {
-      router.replace('/');
-    }
-  }, [session, permitted, router]);
-
+  useEffect(() => { if (session && !permitted) router.replace('/'); }, [permitted, router, session]);
   return { session, permitted };
 }

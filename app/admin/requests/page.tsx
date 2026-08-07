@@ -25,8 +25,8 @@ export default function AdminRequestsPage() {
 
   if (!permitted) return null;
 
-  const handleStatus = (id: string, status: RequestStatus) => {
-    const result = updateRequestStatus(id, status);
+  const handleStatus = async (id: string, status: RequestStatus) => {
+    const result = await updateRequestStatus(id, status);
     if (result.ok) toast(`Request marked ${STATUS_LABELS[status].toLowerCase()}.`);
     else toast(result.error, 'error');
   };

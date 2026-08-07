@@ -14,7 +14,7 @@ export async function GET() {
   const user = await requireActiveUser();
   if (!user) return jsonError('Authentication required', 401);
   // Keep database identifiers and student IDs out of client-facing session data.
-  return Response.json({ name: user.name, email: user.email, role: user.role, status: user.status, level: user.level, programme: user.programme, cohortYear: user.cohortYear, levelConfirmedAt: user.levelConfirmedAt, scopes: user.scopes.map(({ level }) => ({ level })) });
+  return Response.json({ id: user.id, name: user.name, email: user.email, role: user.role, status: user.status, indexNumber: user.indexNumber, level: user.level, programme: user.programme, cohortYear: user.cohortYear, levelConfirmedAt: user.levelConfirmedAt, scopes: user.scopes.map(({ level }) => ({ level })) });
 }
 
 export async function PATCH(request: Request) {

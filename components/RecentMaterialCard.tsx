@@ -18,6 +18,11 @@ const RESOURCE_TYPE_ICONS: Record<ResourceType, LucideIcon> = {
   BOOK: BookOpen,
   NOTES: NotebookText,
   OTHER: Files,
+  ASSIGNMENT: Files,
+  SOLUTION: Files,
+  OUTLINE: Files,
+  TIMETABLE: Files,
+  LINK: Files,
 };
 
 export default function RecentMaterialCard({ resource }: { resource: Resource }) {

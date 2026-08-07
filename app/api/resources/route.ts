@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
   return Response.json(await prisma.resource.findMany({
     where: query.data.mine ? { uploadedById: user.id } : {},
-    include: { course: { select: { code: true, title: true, level: true, semester: true } } },
+    include: { course: { select: { code: true, title: true, level: true, semester: true } }, uploadedBy: { select: { email: true } } },
     orderBy: { createdAt: 'desc' },
   }));
 }

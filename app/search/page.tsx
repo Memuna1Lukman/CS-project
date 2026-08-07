@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search as SearchIcon } from 'lucide-react';
 import PageShell from '@/components/PageShell';
@@ -36,14 +36,12 @@ function ResultTag({
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const q = searchParams.get('q') ?? '';
-  const { courses, resources } = useLibrary();
-  const [query, setQuery] = useState(q);
+  return <SearchContent key={q} initialQuery={q} />;
+}
 
-  // Keep the input in sync when arriving/navigating with a new ?q= (e.g. the
-  // TopBar search), without clobbering further typing on this page.
-  useEffect(() => {
-    setQuery(q);
-  }, [q]);
+function SearchContent({ initialQuery }: { initialQuery: string }) {
+  const { courses, resources } = useLibrary();
+  const [query, setQuery] = useState(initialQuery);
 
   const trimmed = query.trim().toLowerCase();
 

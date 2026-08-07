@@ -5,7 +5,7 @@ import Drawer from './Drawer';
 import { useLibrary } from './MockLibraryProvider';
 import { useToast } from './ToastProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
-import { formatBytes, MAX_FILE_BYTES, readFileAsDataUrl, validateFile } from '@/lib/upload';
+import { formatBytes, MAX_FILE_BYTES, validateFile } from '@/lib/upload';
 import type { Course, ResourceType } from '@/types/resource';
 
 const RESOURCE_TYPES = Object.keys(RESOURCE_TYPE_LABELS) as ResourceType[];
@@ -76,19 +76,12 @@ export default function UploadResourceDrawer({
     // re-runs the §3 scope check (Appendix B).
     setUploading(true);
     try {
-      const fileDataUrl = file ? await readFileAsDataUrl(file) : undefined;
-      const result = addResource({
+      const result = await addResource({
         title: title.trim(),
-        courseCode: course.code,
-        courseTitle: course.title,
-        level: course.level,
-        semester: course.semester,
+        courseId: course.id!,
         type,
         academicYear: academicYear.trim(),
-        fileName: file?.name,
-        fileSize: file ? formatBytes(file.size) : undefined,
-        mimeType: file?.type,
-        fileDataUrl,
+        file: file ?? undefined,
         externalUrl: link.trim() || undefined,
       });
 

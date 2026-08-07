@@ -23,8 +23,8 @@ export default function MyUploadsPage() {
 
   if (!permitted) return null;
 
-  const handleRemove = (id: string, title: string) => {
-    const result = removeResource(id);
+  const handleRemove = async (id: string, title: string) => {
+    const result = await removeResource(id);
     if (result.ok) toast(`Removed "${title}".`);
     else toast(result.error, 'error');
   };

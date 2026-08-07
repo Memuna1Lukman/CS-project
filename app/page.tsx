@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowRight, BookOpenCheck, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 import TopBar from '@/components/TopBar';
@@ -21,13 +21,6 @@ export default function LibraryPage() {
   const isAdmin = session?.role === 'SUPER_ADMIN';
   const [adminLevel, setAdminLevel] = useState<Level>(session?.level ?? 100);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Only super-admins can switch levels (design doc §3: student/rep reads are
-  // locked to their own level). Re-sync the admin switcher's default when the
-  // underlying level changes (e.g. the demo role switcher on /profile).
-  useEffect(() => {
-    if (session) setAdminLevel(session.level);
-  }, [session?.level]);
 
   const activeLevel: Level = isAdmin ? adminLevel : session?.level ?? 100;
 

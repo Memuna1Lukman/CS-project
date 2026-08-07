@@ -29,12 +29,12 @@ export default function AdminUsersPage() {
 
   if (!permitted) return null;
 
-  const handleUpdate = (
+  const handleUpdate = async (
     user: MockUser,
     patch: Partial<Pick<MockUser, 'role' | 'level' | 'status'>>,
     message: string
   ) => {
-    const result = updateUser(user.email, patch);
+    const result = await updateUser(user.email, patch);
     if (result.ok) toast(message);
     else toast(result.error, 'error');
   };

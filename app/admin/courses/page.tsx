@@ -23,9 +23,9 @@ function EditCourseForm({ course, onDone }: { course: Course; onDone: () => void
   const [level, setLevel] = useState<Level>(course.level);
   const [semester, setSemester] = useState<Semester>(course.semester);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = updateCourse(course.code, {
+    const result = await updateCourse(course.code, {
       title: title.trim() || course.title,
       lecturer: lecturer.trim() || undefined,
       level,
@@ -111,12 +111,12 @@ function AddCourseForm({ onDone }: { onDone: () => void }) {
 
   const isValid = code.trim().length > 0 && title.trim().length > 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
     if (!isValid) return;
 
-    const result = addCourse({
+    const result = await addCourse({
       code: code.trim(),
       title: title.trim(),
       lecturer: lecturer.trim() || undefined,
