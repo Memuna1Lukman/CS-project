@@ -17,12 +17,15 @@ export async function GET(request: Request) {
   if (!parsed.success) return validationError(parsed.error);
   const { level, semester, q } = parsed.data;
 
+  const readWhere = courseReadWhere(user);
   const courses = await prisma.course.findMany({
     where: {
-      ...courseReadWhere(user),
-      ...(level ? { level } : {}),
-      ...(semester ? { semester } : {}),
-      ...(q ? { OR: [{ code: { contains: q, mode: 'insensitive' } }, { title: { contains: q, mode: 'insensitive' } }] } : {}),
+      AND: [
+        readWhere,
+        ...(level ? [{ level }] : []),
+        ...(semester ? [{ semester }] : []),
+        ...(q ? [{ OR: [{ code: { contains: q, mode: 'insensitive' as const } }, { title: { contains: q, mode: 'insensitive' as const } }] }] : []),
+      ],
     },
     include: { _count: { select: { resources: { where: { status: 'ACTIVE' } } } } },
     orderBy: [{ level: 'asc' }, { semester: 'asc' }, { code: 'asc' }],

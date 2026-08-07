@@ -18,10 +18,10 @@ export default function RepDashboardPage() {
   const { courses, resources } = useLibrary();
   const [uploadCourse, setUploadCourse] = useState<Course | null>(null);
 
-  const myLevelCourses = useMemo(
-    () => courses.filter((c) => c.level === session?.level),
-    [courses, session?.level]
-  );
+  const myLevelCourses = useMemo(() => {
+    const myLevels = session?.scopes && session.scopes.length > 0 ? session.scopes : session?.level ? [session.level] : [];
+    return courses.filter((c) => myLevels.includes(c.level));
+  }, [courses, session]);
   const myUploadCount = useMemo(
     () => resources.filter((r) => r.status === 'ACTIVE' && r.uploadedBy === session?.id).length,
     [resources, session?.id]

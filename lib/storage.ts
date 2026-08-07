@@ -3,7 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 function r2Client() {
   const accountId = process.env.R2_ACCOUNT_ID;
-  if (!accountId || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME) {
+  if (!accountId || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET) {
     throw new Error('Cloudflare R2 is not configured. Set the R2_* environment variables.');
   }
 
@@ -15,8 +15,8 @@ function r2Client() {
 }
 
 function bucket() {
-  if (!process.env.R2_BUCKET_NAME) throw new Error('R2_BUCKET_NAME is not configured.');
-  return process.env.R2_BUCKET_NAME;
+  if (!process.env.R2_BUCKET) throw new Error('R2_BUCKET is not configured.');
+  return process.env.R2_BUCKET;
 }
 
 export async function uploadResourceFile(key: string, file: File) {

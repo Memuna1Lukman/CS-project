@@ -31,11 +31,24 @@ function SessionState({ children }: { children: React.ReactNode }) {
     const response = await fetch('/api/me', { cache: 'no-store' });
     if (!response.ok) { setSession(null); setReady(true); return; }
     const user = await response.json();
-    const level = user.role === 'REP' ? user.scopes?.[0]?.level : user.level;
+    const repScopes: number[] = user.role === 'REP' ? (user.scopes ?? []).map((scope: { level: number }) => scope.level) : [];
+    const level = user.role === 'REP' ? repScopes[0] : user.level;
     // No fallback here: a null level is a real state (admin hasn't assigned
     // one yet, design doc §4) — fabricating "Level 100" would mislead a
     // student into thinking they have read access they don't actually have.
-    setSession({ id: user.id, email: user.email, name: user.name || user.email.split('@')[0], role: user.role, level: level ?? null, indexNumber: user.indexNumber || '', status: user.status });
+    setSession({
+      id: user.id,
+      email: user.email,
+      name: user.name || user.email.split('@')[0],
+      role: user.role,
+      level: level ?? null,
+      indexNumber: user.indexNumber || '',
+      status: user.status,
+      // Full set of a rep's assigned level scopes (design doc §3: reps may be
+      // assigned more than one level) — `level` above still carries the
+      // primary/first scope for existing single-level UI.
+      scopes: user.role === 'REP' ? (repScopes as (100 | 200 | 300 | 400)[]) : undefined,
+    });
     setReady(true);
   };
 
