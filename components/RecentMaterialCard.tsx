@@ -31,7 +31,7 @@ export default function RecentMaterialCard({ resource }: { resource: Resource })
   return (
     <Link
       href={`/courses/${encodeURIComponent(resource.courseCode)}`}
-      className="group flex min-h-36 flex-col rounded-2xl bg-[var(--surface)] p-4 shadow-[0_1px_3px_var(--shadow)] transition-shadow hover:shadow-[0_8px_24px_var(--shadow)]"
+      className="group flex min-h-36 flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_1px_2px_var(--shadow),0_1px_3px_var(--shadow)] transition-[box-shadow,border-color] duration-200 hover:border-[var(--accent)] hover:shadow-[0_1px_2px_var(--shadow),0_16px_32px_-10px_var(--shadow)]"
     >
       <div className="flex items-start justify-between gap-3">
         <span

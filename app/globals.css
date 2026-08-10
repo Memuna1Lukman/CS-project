@@ -6,37 +6,37 @@
 }
 
 :root {
-  /* Surfaces — near-white canvas, floating white cards */
-  --bg: #f4f5f7;
+  /* Surfaces — cool near-white canvas, crisp white cards (UI-SPEC v4 "Midnight") */
+  --bg: #f2f4f9;
   --surface: #ffffff;
-  --surface-2: #f1f2f4;
-  --surface-3: #e9eaee;
+  --surface-2: #eaeef5;
+  --surface-3: #dfe4ee;
 
   /* Top bar melts into the canvas */
-  --topbar-bg: #f4f5f7;
-  --topbar-fg: #1b1c1e;
+  --topbar-bg: #f2f4f9;
+  --topbar-fg: #12141a;
 
   /* Text */
-  --text-primary: #1b1c1e;
-  --text-muted: #6e7075;
-  --text-subtle: #9b9da3;
+  --text-primary: #12141a;
+  --text-muted: #62666f;
+  --text-subtle: #9297a1;
 
   /* Lines & depth */
-  --border: #ebecef;
-  --focus: #3b82f6;
-  --shadow: rgba(24, 25, 28, 0.07);
-  --scrim: rgba(20, 20, 22, 0.4);
+  --border: #e1e5ee;
+  --focus: #2563eb;
+  --shadow: rgba(15, 23, 42, 0.09);
+  --scrim: rgba(8, 10, 18, 0.45);
 
-  /* Ink accent — the dark pill from the reference */
-  --accent: #1b1c1e;
+  /* Primary accent — electric blue pill (2026-08 palette swap, see UI-SPEC.md v4) */
+  --accent: #2563eb;
   --accent-fg: #ffffff;
-  --accent-subtle: #ececef;
+  --accent-subtle: #dbe6fe;
 
   /* Resource-type candy tints (strong text on -soft background) */
   --type-slides: #7c3aed;
   --type-slides-soft: #f1ebfe;
-  --type-notes: #2563eb;
-  --type-notes-soft: #e8f0fe;
+  --type-notes: #0d9488;
+  --type-notes-soft: #dcf5f2;
   --type-past-question: #e11d48;
   --type-past-question-soft: #fdeaef;
   --type-lab-manual: #16a34a;
@@ -48,32 +48,33 @@
 }
 
 [data-theme="dark"] {
-  --bg: #131417;
-  --surface: #1d1e22;
-  --surface-2: #26272c;
-  --surface-3: #2e2f35;
+  /* Near-black "Midnight" canvas with glass-dark cards */
+  --bg: #06070c;
+  --surface: #101319;
+  --surface-2: #171b23;
+  --surface-3: #1f2430;
 
-  --topbar-bg: #131417;
-  --topbar-fg: #f4f4f6;
+  --topbar-bg: #06070c;
+  --topbar-fg: #f5f6fa;
 
-  --text-primary: #f4f4f6;
-  --text-muted: #a6a8ae;
-  --text-subtle: #75777e;
+  --text-primary: #f5f6fa;
+  --text-muted: #9a9daa;
+  --text-subtle: #686b78;
 
-  --border: #2a2b30;
-  --focus: #6d9bff;
-  --shadow: rgba(0, 0, 0, 0.5);
-  --scrim: rgba(0, 0, 0, 0.6);
+  --border: #232732;
+  --focus: #7aa8ff;
+  --shadow: rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.7);
 
-  /* Ink pill inverts: near-white pill, dark ink text */
-  --accent: #f4f4f6;
-  --accent-fg: #131417;
-  --accent-subtle: #2a2b31;
+  /* Same electric blue family, brightened with near-black text for contrast on the dark canvas */
+  --accent: #7aa8ff;
+  --accent-fg: #06070c;
+  --accent-subtle: rgba(122, 168, 255, 0.16);
 
   --type-slides: #a78bfa;
   --type-slides-soft: rgba(167, 139, 250, 0.16);
-  --type-notes: #7aa5f8;
-  --type-notes-soft: rgba(122, 165, 248, 0.16);
+  --type-notes: #2dd4bf;
+  --type-notes-soft: rgba(45, 212, 191, 0.16);
   --type-past-question: #fb7185;
   --type-past-question-soft: rgba(251, 113, 133, 0.16);
   --type-lab-manual: #4ade80;
@@ -91,4 +92,85 @@
 *:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* Landing page motion primitives ------------------------------------- */
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes gradient-pan {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+/* Reveal.tsx toggles this class on when a section scrolls into view. Starts
+   invisible only when JS + motion are available, so content never depends on
+   the animation actually running (no-JS and reduced-motion both just render
+   in-place, see below). */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.reveal-in {
+  animation: reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: float-slow 5s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow-pulse 3.5s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 100%;
+  animation: gradient-pan 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .reveal-in,
+  .animate-float,
+  .animate-glow,
+  .animate-gradient {
+    animation: none;
+  }
 }

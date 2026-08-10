@@ -49,7 +49,7 @@ export default function Sidebar({ activeLevel, onSelectLevel, open, onClose }: S
 
       {/* Floating white panel, inset from the canvas edge (UI-SPEC v2) */}
       <aside
-        className={`fixed md:sticky top-16 bottom-0 md:top-20 md:bottom-auto md:self-start left-0 z-30 shrink-0 md:ml-4 md:mb-4 md:rounded-2xl bg-[var(--surface)] shadow-[0_4px_16px_var(--shadow)] transform transition-[transform,width] duration-200 md:translate-x-0 flex flex-col md:max-h-[calc(100vh-6rem)] ${
+        className={`fixed md:sticky top-16 bottom-0 md:top-20 md:bottom-auto md:self-start left-0 z-30 shrink-0 md:ml-4 md:mb-4 md:rounded-2xl bg-[var(--surface)] md:border md:border-[var(--border)] shadow-[0_1px_2px_var(--shadow),0_8px_24px_-6px_var(--shadow)] transform transition-[transform,width] duration-200 md:translate-x-0 flex flex-col md:max-h-[calc(100vh-6rem)] ${
           collapsed ? 'md:w-16' : 'w-64 md:w-[220px]'
         } ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >

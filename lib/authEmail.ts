@@ -1,18 +1,19 @@
 import { createTransport } from 'nodemailer';
 import type { EmailConfig } from 'next-auth/providers/email';
 
-// Hand-built magic-link email matching the app's light "floating card" look
-// (docs/UI-SPEC.md) — email clients can't read CSS custom properties, so the
-// actual light-theme hex values from app/globals.css are inlined directly.
+// Hand-built magic-link email matching the app's "Midnight" floating-card
+// look (docs/UI-SPEC.md v4) — email clients can't read CSS custom
+// properties, so the light-theme hex values from app/globals.css are
+// inlined directly.
 const COLORS = {
-  bg: '#f4f5f7',
+  bg: '#f2f4f9',
   surface: '#ffffff',
-  surface2: '#f1f2f4',
-  textPrimary: '#1b1c1e',
-  textMuted: '#6e7075',
-  textSubtle: '#9b9da3',
-  border: '#ebecef',
-  accent: '#1b1c1e',
+  surface2: '#eaeef5',
+  textPrimary: '#12141a',
+  textMuted: '#62666f',
+  textSubtle: '#9297a1',
+  border: '#e1e5ee',
+  accent: '#2563eb',
   accentFg: '#ffffff',
 };
 
@@ -37,7 +38,7 @@ function buildHtml(url: string, email: string) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.bg}; padding:40px 16px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="420" cellpadding="0" cellspacing="0" style="max-width:420px; width:100%; background:${COLORS.surface}; border-radius:24px; box-shadow:0 8px 30px rgba(24,25,28,0.08);">
+          <table role="presentation" width="420" cellpadding="0" cellspacing="0" style="max-width:420px; width:100%; background:${COLORS.surface}; border-radius:24px; box-shadow:0 8px 30px rgba(15,23,42,0.09); border:1px solid ${COLORS.border};">
             <tr>
               <td style="padding:40px 32px 32px;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
