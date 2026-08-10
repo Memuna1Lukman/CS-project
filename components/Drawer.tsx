@@ -17,6 +17,15 @@ export default function Drawer({ open, onClose, title, children }: DrawerProps) 
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
+  // onClose is often passed as a fresh inline function on every render (e.g.
+  // it wraps state resets). Routing calls through a ref keeps this effect
+  // from re-running — and re-stealing focus to the first focusable element —
+  // on every keystroke inside the drawer.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -27,7 +36,7 @@ export default function Drawer({ open, onClose, title, children }: DrawerProps) 
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab' || !panel) return;
@@ -51,7 +60,7 @@ export default function Drawer({ open, onClose, title, children }: DrawerProps) 
       document.removeEventListener('keydown', handleKeyDown);
       previouslyFocused?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -67,7 +76,7 @@ export default function Drawer({ open, onClose, title, children }: DrawerProps) 
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-[var(--surface)] rounded-t-3xl sm:rounded-3xl shadow-[0_8px_30px_var(--shadow)] p-6"
+        className="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-[var(--surface)] border border-[var(--border)] rounded-t-3xl sm:rounded-3xl shadow-[0_8px_30px_var(--shadow)] p-6"
       >
         <div className="flex items-center justify-between">
           <h2 id={titleId} className="text-lg font-bold text-[var(--text-primary)]">

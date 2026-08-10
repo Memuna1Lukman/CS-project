@@ -1,14 +1,13 @@
-// Client-side upload validation, mirroring the server-side whitelist the real
-// backend will enforce (design doc §10: whitelist mime types + cap size).
-// TODO(backend): enforce the same rules server-side in POST /api/resources.
+// Client-side upload validation. The mime/size whitelist is imported from
+// lib/fileValidation.ts (the module POST /api/resources actually enforces)
+// so the two never drift apart.
+import { ACCEPTED_FILES, MAX_FILE_SIZE } from './fileValidation';
 
-export const ALLOWED_MIME_TYPES: Record<string, string> = {
-  'application/pdf': 'PDF',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
-};
+export const ALLOWED_MIME_TYPES: Record<string, string> = Object.fromEntries(
+  Object.entries(ACCEPTED_FILES).map(([mime, { label }]) => [mime, label])
+);
 
-export const MAX_FILE_BYTES = 15 * 1024 * 1024;
+export const MAX_FILE_BYTES = MAX_FILE_SIZE;
 
 export function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;

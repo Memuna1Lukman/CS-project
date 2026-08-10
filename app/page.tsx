@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
 import CourseCard from '@/components/CourseCard';
 import StatCard from '@/components/StatCard';
+import LandingPage from '@/components/LandingPage';
 import { Level, Semester } from '@/types/resource';
 import { useSession } from '@/components/SessionProvider';
 import { useLibrary } from '@/components/LibraryProvider';
@@ -37,6 +38,14 @@ export default function LibraryPage() {
   );
 
   const semesters: Semester[] = [1, 2];
+
+  // Signed-out visitors to "/" get the public marketing landing page instead
+  // of the course browser below (SessionProvider exempts "/" from the
+  // sign-in redirect specifically so this branch can render). Placed after
+  // every hook call above so hook order stays constant across renders.
+  if (!session) {
+    return <LandingPage />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)]">

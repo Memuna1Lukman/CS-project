@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LogOut, Menu, Search, ShieldCheck, Upload } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import AppLogo from './AppLogo';
 import { useSession } from './SessionProvider';
 import type { Role } from '@/types/resource';
 
@@ -15,7 +16,7 @@ const ROLE_LABELS: Record<Role, string> = {
 };
 
 const ICON_PILL =
-  'w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-[var(--surface)] shadow-[0_1px_2px_var(--shadow)] hover:bg-[var(--surface-3)]';
+  'w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_2px_var(--shadow)] hover:bg-[var(--surface-3)]';
 
 export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => vo
   };
 
   return (
-    <header className="sticky top-0 z-40 flex items-center gap-2 sm:gap-3 h-16 px-4 sm:px-6 bg-[var(--topbar-bg)] text-[var(--topbar-fg)]">
+    <header className="sticky top-0 z-40 flex items-center gap-2 sm:gap-3 h-16 px-4 sm:px-6 bg-[var(--topbar-bg)]/85 backdrop-blur-md border-b border-[var(--border)] text-[var(--topbar-fg)]">
       {onToggleSidebar && (
         <button
           type="button"
@@ -41,11 +42,13 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => vo
         </button>
       )}
 
-      <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight shrink-0">
-        <span className="w-9 h-9 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] flex items-center justify-center font-mono text-xs shadow-[0_1px_2px_var(--shadow)]">
-          CS
+      <Link href="/" className="shrink-0" aria-label="CS Resource Hub home">
+        <span className="sm:hidden">
+          <AppLogo showName={false} />
         </span>
-        <span className="hidden sm:inline">CS Resource Hub</span>
+        <span className="hidden sm:inline">
+          <AppLogo />
+        </span>
       </Link>
 
       {/* Mobile: search/profile live in BottomNav instead, so just push the
@@ -64,7 +67,7 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => vo
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search courses, resources..."
-            className="w-full h-11 pl-10 pr-4 rounded-full bg-[var(--surface)] shadow-[0_1px_2px_var(--shadow)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none"
+            className="w-full h-11 pl-10 pr-4 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_2px_var(--shadow)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] text-sm outline-none"
           />
         </div>
       </form>
@@ -88,7 +91,7 @@ export default function TopBar({ onToggleSidebar }: { onToggleSidebar?: () => vo
         <>
           <Link
             href="/profile"
-            className="hidden sm:flex items-center gap-2 pl-1.5 pr-4 h-11 rounded-full bg-[var(--surface)] shadow-[0_1px_2px_var(--shadow)] hover:bg-[var(--surface-3)] max-w-[12rem]"
+            className="hidden sm:flex items-center gap-2 pl-1.5 pr-4 h-11 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_2px_var(--shadow)] hover:bg-[var(--surface-3)] max-w-[12rem]"
           >
             <span className="w-8 h-8 shrink-0 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] flex items-center justify-center text-xs font-bold">
               {session.name.charAt(0).toUpperCase()}
