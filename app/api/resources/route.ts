@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { canWriteCourse, jsonError, requireActiveUser, resourceMetadata, resourceReadWhere, safeExternalUrl, validationError } from '@/lib/api';
+import { audit, canWriteCourse, jsonError, requireActiveUser, resourceMetadata, resourceReadWhere, safeExternalUrl, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { deleteResourceFile, uploadResourceFile } from '@/lib/storage';
 import { validateUploadedFile } from '@/lib/fileValidation';
@@ -43,20 +43,33 @@ export async function POST(request: Request) {
   if (!await canWriteCourse(user.id, user.role, parsed.data.courseId)) return jsonError('You cannot upload to this course', 403);
 
   if (!file) {
-    return Response.json(await prisma.resource.create({ data: { ...parsed.data, uploadedById: user.id } }), { status: 201 });
+    let resource: Awaited<ReturnType<typeof prisma.resource.create>> | null = null;
+    try {
+      resource = await prisma.resource.create({ data: { ...parsed.data, uploadedById: user.id } });
+      await audit(user.id, 'RESOURCE_UPLOADED', 'Resource', resource.id, { courseId: parsed.data.courseId, type: parsed.data.type, kind: 'link' });
+      return Response.json(resource, { status: 201 });
+    } catch (error) {
+      if (resource) await prisma.resource.delete({ where: { id: resource.id } }).catch(() => undefined);
+      console.error('Resource link creation failed', error);
+      return jsonError('Upload could not be completed', 503);
+    }
   }
   const fileError = await validateUploadedFile(file);
   if (fileError) return jsonError(fileError);
 
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-100);
   const storageKey = `resources/${parsed.data.courseId}/${crypto.randomUUID()}-${safeName}`;
   try {
     await uploadResourceFile(storageKey, file);
+    let resource: Awaited<ReturnType<typeof prisma.resource.create>> | null = null;
     try {
-      return Response.json(await prisma.resource.create({
+      resource = await prisma.resource.create({
         data: { ...parsed.data, externalUrl: undefined, storageKey, fileSize: file.size, mimeType: file.type, uploadedById: user.id },
-      }), { status: 201 });
+      });
+      await audit(user.id, 'RESOURCE_UPLOADED', 'Resource', resource.id, { courseId: parsed.data.courseId, type: parsed.data.type, kind: 'file', fileSize: file.size });
+      return Response.json(resource, { status: 201 });
     } catch (error) {
+      if (resource) await prisma.resource.delete({ where: { id: resource.id } }).catch(() => undefined);
       await deleteResourceFile(storageKey).catch(() => undefined);
       throw error;
     }

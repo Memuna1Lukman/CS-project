@@ -77,9 +77,15 @@ function SessionState({ children }: { children: React.ReactNode }) {
   // completes that step first.
   const isRepOnHome = Boolean(session && session.role === 'REP' && !needsOnboarding && pathname === '/');
 
+  // '/' doubles as the public marketing landing page for signed-out visitors
+  // (app/page.tsx branches on `session`), so it's exempt from the sign-in
+  // redirect alongside '/sign-in' itself. Every other route still requires a
+  // session — no resource data is ever reachable while signed out.
+  const isPublicRoute = pathname === '/sign-in' || pathname === '/';
+
   useEffect(() => {
     if (!ready) return;
-    if (!session && pathname !== '/sign-in') {
+    if (!session && !isPublicRoute) {
       router.replace('/sign-in');
       return;
     }
@@ -94,7 +100,7 @@ function SessionState({ children }: { children: React.ReactNode }) {
     if (isRepOnHome) {
       router.replace('/rep');
     }
-  }, [ready, session, needsOnboarding, isSignedInOnSignIn, isRepOnHome, pathname, router]);
+  }, [ready, session, needsOnboarding, isSignedInOnSignIn, isRepOnHome, isPublicRoute, pathname, router]);
 
   const signOut = () => {
     void authSignOut({ callbackUrl: '/sign-in' });
@@ -106,7 +112,7 @@ function SessionState({ children }: { children: React.ReactNode }) {
   // while the redirect effects above are in flight.
   const blocked =
     !ready ||
-    (!session && pathname !== '/sign-in') ||
+    (!session && !isPublicRoute) ||
     (session !== null && needsOnboarding && pathname !== '/onboarding') ||
     isSignedInOnSignIn ||
     isRepOnHome;
