@@ -1,4 +1,5 @@
-import { audit, canWriteCourse, jsonError, requireActiveUser } from '@/lib/api';
+import { z } from 'zod';
+import { audit, canWriteCourse, jsonError, requireActiveUser, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { allowRequest } from '@/lib/rateLimit';
 import { YoutubeApiError, suggestVideosForCourse } from '@/lib/youtube';
@@ -11,9 +12,15 @@ type Context = { params: Promise<{ code: string }> };
 // YouTube quota (design doc §5).
 const SUGGEST_COOLDOWN_MS = 5 * 60 * 1000;
 
-export async function POST(_: Request, { params }: Context) {
+const bodySchema = z.object({ topic: z.string().trim().min(2).max(120).optional() });
+
+export async function POST(request: Request, { params }: Context) {
   const user = await requireActiveUser();
   if (!user) return jsonError('Authentication required', 401);
+
+  const parsedBody = bodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsedBody.success) return validationError(parsedBody.error);
+  const topic = parsedBody.data.topic;
 
   const { code } = await params;
   const course = await prisma.course.findUnique({
@@ -27,13 +34,21 @@ export async function POST(_: Request, { params }: Context) {
     return jsonError('Suggestions were just refreshed for this course — try again in a few minutes.', 429);
   }
 
-  const topResources = await prisma.resource.findMany({
-    where: { courseId: course.id, status: 'ACTIVE' },
-    select: { title: true },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  });
-  const query = [course.title, course.code, ...topResources.map((r) => r.title)].join(' ');
+  // A rep-entered topic narrows the search to that specific concept within
+  // the course; otherwise fall back to the course title/code plus its most
+  // recent resource titles as a general-purpose query.
+  let query: string;
+  if (topic) {
+    query = [topic, course.title].join(' ');
+  } else {
+    const topResources = await prisma.resource.findMany({
+      where: { courseId: course.id, status: 'ACTIVE' },
+      select: { title: true },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+    query = [course.title, course.code, ...topResources.map((r) => r.title)].join(' ');
+  }
 
   const existing = await prisma.recommendedVideo.findMany({ where: { courseId: course.id }, select: { videoId: true } });
   const excludeVideoIds = existing.map((v) => v.videoId);
@@ -69,7 +84,7 @@ export async function POST(_: Request, { params }: Context) {
       })
     )
   );
-  await audit(user.id, 'VIDEOS_SUGGESTED', 'Course', course.id, { count: created.length });
+  await audit(user.id, 'VIDEOS_SUGGESTED', 'Course', course.id, { count: created.length, topic: topic ?? null });
 
   return Response.json({ created: created.length, videos: created });
 }

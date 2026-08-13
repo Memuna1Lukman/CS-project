@@ -36,6 +36,7 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
   const [suggesting, setSuggesting] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [topic, setTopic] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,18 +69,24 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
 
   const cooldownRemaining = cooldownUntil ? Math.max(0, Math.ceil((cooldownUntil - now) / 1000)) : 0;
 
-  const handleSuggest = async () => {
+  const handleSuggest = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (suggesting || cooldownRemaining > 0) return;
     setSuggesting(true);
     try {
+      const trimmedTopic = topic.trim();
       const result = await api<{ created: number }>(`/api/courses/${encodeURIComponent(course.code)}/videos/suggest`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: trimmedTopic || undefined }),
       });
       setCooldownUntil(Date.now() + SUGGEST_COOLDOWN_MS);
       setNow(Date.now());
       toast(
         result.created === 0
-          ? 'No new video suggestions found for this course.'
+          ? trimmedTopic
+            ? `No new video suggestions found for "${trimmedTopic}".`
+            : 'No new video suggestions found for this course.'
           : `Found ${result.created} video suggestion${result.created === 1 ? '' : 's'} — review below before they go live.`
       );
       await load();
@@ -110,19 +117,33 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
 
   return (
     <section className="mt-6">
-      <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Recommended Videos</h2>
         {canUpload && (
-          <button
-            type="button"
-            onClick={handleSuggest}
-            disabled={suggesting || cooldownRemaining > 0}
-            aria-live="polite"
-            className="inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-semibold disabled:opacity-50"
-          >
-            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-            {suggestLabel}
-          </button>
+          <form onSubmit={handleSuggest} className="flex items-center gap-2">
+            <label htmlFor="video-topic-input" className="sr-only">
+              Topic to search for (optional)
+            </label>
+            <input
+              id="video-topic-input"
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Topic (optional), e.g. Binary search trees"
+              maxLength={120}
+              disabled={suggesting}
+              className="h-9 min-w-0 flex-1 sm:w-56 px-3 rounded-full bg-[var(--surface-2)] border border-transparent text-xs text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none focus:border-[var(--focus)] disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={suggesting || cooldownRemaining > 0}
+              aria-live="polite"
+              className="shrink-0 inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-semibold disabled:opacity-50"
+            >
+              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+              {suggestLabel}
+            </button>
+          </form>
         )}
       </div>
 
