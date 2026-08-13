@@ -1,47 +1,51 @@
 import { z } from 'zod';
 
 // AI timetable extraction (design doc: ClassSession suggest -> review ->
-// publish workflow). Server-only — sends the uploaded timetable image/PDF to
-// Gemini's vision API and asks for strict JSON. Output is never trusted
-// blindly: it's Zod-validated here, and every row lands as DRAFT — nothing
-// this module returns is shown to students until a rep/admin publishes it.
+// publish workflow). Server-only — sends the uploaded LEVEL timetable
+// image/PDF to Gemini's vision API and asks for strict JSON: one multi-row
+// table covering every course at that level for the period (a KNUST exam
+// timetable, not a single course's weekly schedule). Output is never
+// trusted blindly: it's Zod-validated here, and every row lands as DRAFT —
+// nothing this module returns is shown to students until a rep/admin
+// publishes it.
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const FETCH_TIMEOUT_MS = 20000;
+const MAX_ROWS = 200; // a whole level's exam timetable can list many courses/dates
 
 export class GeminiApiError extends Error {}
 
-const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-const extractedSessionSchema = z.object({
-  course: z.string().trim().max(60).nullable().optional(),
-  dayOfWeek: z.enum(DAYS),
+const extractedRowSchema = z.object({
+  date: z.string().regex(DATE_PATTERN, 'Expected YYYY-MM-DD'),
+  courseCode: z.string().trim().min(1).max(30),
+  courseTitle: z.string().trim().min(1).max(180),
   startTime: z.string().regex(TIME_PATTERN, 'Expected 24h HH:MM'),
   endTime: z.string().regex(TIME_PATTERN, 'Expected 24h HH:MM'),
-  room: z.string().trim().max(60).nullable().optional(),
-  lecturer: z.string().trim().max(120).nullable().optional(),
+  venue: z.string().trim().max(80).nullable().optional(),
 });
 
-const extractedTimetableSchema = z.array(extractedSessionSchema).max(50);
+const extractedTimetableSchema = z.array(extractedRowSchema).max(MAX_ROWS);
 
-export type ExtractedSession = z.infer<typeof extractedSessionSchema>;
+export type ExtractedTimetableRow = z.infer<typeof extractedRowSchema>;
 
-function buildPrompt(courseCode: string, courseTitle: string): string {
-  return `You are reading a university class timetable from an uploaded image or PDF.
+function buildPrompt(levelScope: number, academicPeriod: string): string {
+  return `You are reading a university timetable (e.g. an exam or class timetable) from an uploaded image or PDF, for Level ${levelScope}, ${academicPeriod}.
 
-Extract every class session that belongs to the course "${courseCode} — ${courseTitle}". The document may list several courses; only include rows for this one (match on course code or a close title match) — ignore sessions for other courses.
+This is a multi-row table listing MANY different courses, each with its own date, time, and venue — not a single course's weekly schedule. Extract every row you can confidently read.
 
 Return a JSON array where each item has exactly these keys:
-- "course": the course code/title as printed (string)
-- "dayOfWeek": one of MON, TUE, WED, THU, FRI, SAT, SUN
+- "date": the calendar date printed for that row, as "YYYY-MM-DD" (infer the year from the academic period given above if the table only prints day/month)
+- "courseCode": the course code as printed (e.g. "CSM 251")
+- "courseTitle": the course title as printed
 - "startTime": 24-hour "HH:MM"
 - "endTime": 24-hour "HH:MM"
-- "room": the room/venue as printed, or null if not shown
-- "lecturer": the lecturer name as printed, or null if not shown
+- "venue": the room/venue as printed, or null if not shown
 
-If you cannot find any sessions for this course, or the image is too unclear to read confidently, return an empty array []. Do not guess times or rooms you can't actually read. Return ONLY the JSON array — no commentary, no markdown formatting.`;
+If the image is too unclear to read confidently, or you cannot find a real timetable table in it, return an empty array []. Do not guess dates, times, or venues you can't actually read — skip a row rather than invent it. Return ONLY the JSON array — no commentary, no markdown formatting.`;
 }
 
 function stripJsonFences(text: string): string {
@@ -50,16 +54,16 @@ function stripJsonFences(text: string): string {
 }
 
 /**
- * Sends a timetable file to Gemini's vision API and returns the sessions it
- * found for this course. Returns an empty array (not an error) when Gemini
- * legitimately finds nothing — the caller decides how to message that.
+ * Sends a level timetable file to Gemini's vision API and returns every row
+ * it found. Returns an empty array (not an error) when Gemini legitimately
+ * finds nothing — the caller decides how to message that.
  */
 export async function extractTimetableFromFile(
   fileBytes: Uint8Array,
   mimeType: string,
-  courseCode: string,
-  courseTitle: string
-): Promise<ExtractedSession[]> {
+  levelScope: number,
+  academicPeriod: string
+): Promise<ExtractedTimetableRow[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new GeminiApiError('AI timetable extraction is not configured.');
 
@@ -75,7 +79,7 @@ export async function extractTimetableFromFile(
         contents: [
           {
             parts: [
-              { text: buildPrompt(courseCode, courseTitle) },
+              { text: buildPrompt(levelScope, academicPeriod) },
               { inline_data: { mime_type: mimeType, data: base64 } },
             ],
           },
