@@ -103,7 +103,12 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    /* Literal `none`, not translateY(0): a non-none transform — even an
+       identity one — makes this element a containing block for any
+       position:fixed descendant, which would otherwise pin fixed nav/modals
+       to this element's box instead of the viewport once the animation
+       settles (animation-fill-mode: both keeps the "to" value applied). */
+    transform: none;
   }
 }
 
@@ -196,6 +201,7 @@
     transition-timing-function: var(--ease-smooth);
   }
 
+  a:active,
   button:not(:disabled):active,
   [role="button"]:not([aria-disabled="true"]):active {
     transform: scale(0.97);
@@ -211,7 +217,12 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    /* Literal `none` — see the comment on reveal-up above. This wrapper sits
+       between <body> and every page's content (PageTransition.tsx), so a
+       lingering non-none transform here breaks position:fixed for anything
+       nested inside it app-wide: BottomNav, the mobile Sidebar drawer/scrim,
+       and every Drawer.tsx modal. */
+    transform: none;
   }
 }
 
@@ -236,7 +247,7 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: none;
   }
 }
 
@@ -248,6 +259,36 @@
   animation: drawer-panel-in 0.24s var(--ease-smooth) both;
 }
 
+/* Drawer/modal exit (Drawer.tsx) — mirrors *-in above; duration must match
+   Drawer.tsx's EXIT_ANIMATION_MS so unmount happens right as this finishes. */
+@keyframes drawer-scrim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-panel-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+}
+
+.drawer-scrim-out {
+  animation: drawer-scrim-out 0.18s ease-in both;
+}
+
+.drawer-panel-out {
+  animation: drawer-panel-out 0.18s var(--ease-smooth) both;
+}
+
 /* Toast entrance (ToastProvider.tsx) */
 @keyframes toast-in {
   from {
@@ -256,7 +297,7 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: none;
   }
 }
 
@@ -268,6 +309,8 @@
   .page-transition,
   .drawer-scrim-in,
   .drawer-panel-in,
+  .drawer-scrim-out,
+  .drawer-panel-out,
   .toast-in {
     animation: none;
   }

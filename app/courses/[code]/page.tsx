@@ -9,6 +9,7 @@ import ResourceRow from '@/components/ResourceRow';
 import UploadResourceDrawer from '@/components/UploadResourceDrawer';
 import RequestMaterialDrawer from '@/components/RequestMaterialDrawer';
 import RecommendedVideos from '@/components/RecommendedVideos';
+import TimetableSection from '@/components/TimetableSection';
 import { useLibrary } from '@/components/LibraryProvider';
 import { useSession } from '@/components/SessionProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
@@ -96,7 +97,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
       </header>
 
       <div className="sticky top-16 z-20 -mx-4 mt-4 bg-[var(--bg)] px-4 py-3 sm:static sm:mx-0 sm:mt-6 sm:bg-transparent sm:px-0 sm:py-0">
-        <div className="space-y-2.5 overflow-x-auto pb-1">
+        <div className="space-y-2.5">
         <FilterPills label="Type" options={typeOptions} active={typeFilter} onChange={setTypeFilter} />
         <FilterPills label="Year" options={yearOptions} active={yearFilter} onChange={setYearFilter} />
         </div>
@@ -115,6 +116,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
           />
         )}
       </div>
+
+      <TimetableSection course={course} canUpload={canUpload} />
 
       <RecommendedVideos course={course} canUpload={canUpload} />
 

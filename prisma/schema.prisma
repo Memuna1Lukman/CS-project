@@ -50,6 +50,21 @@ enum VideoStatus {
   REJECTED
 }
 
+enum DayOfWeek {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+enum ClassSessionStatus {
+  DRAFT
+  PUBLISHED
+}
+
 
 model User {
   id            String     @id @default(cuid())
@@ -71,6 +86,7 @@ model User {
   auditLogs     AuditLog[] @relation("AuditActor")
   suggestedVideos RecommendedVideo[] @relation("VideoSuggestedBy")
   approvedVideos  RecommendedVideo[] @relation("VideoApprovedBy")
+  createdSessions ClassSession[]     @relation("ClassSessionCreatedBy")
   createdAt     DateTime   @default(now())
 }
 
@@ -138,6 +154,7 @@ model Course {
   department   Department @relation(fields: [departmentId], references: [id])
   resources    Resource[]
   recommendedVideos RecommendedVideo[]
+  classSessions ClassSession[]
   createdAt    DateTime   @default(now())
   @@index([level, semester])
 }
@@ -158,6 +175,7 @@ model Resource {
   uploadedById  String
   uploadedBy    User           @relation(fields: [uploadedById], references: [id])
   createdAt     DateTime       @default(now())
+  timetableSessions ClassSession[]
   @@index([courseId, type])
   @@index([academicYear])
 }
@@ -195,6 +213,29 @@ model RecommendedVideo {
   approvedAt    DateTime?
 
   @@unique([courseId, videoId])
+  @@index([courseId, status])
+}
+
+// AI-extracted, approval-gated timetable sessions (Gemini vision on an
+// uploaded timetable image/PDF). Mirrors RecommendedVideo's suggest -> review
+// -> approve pattern: extraction only ever produces DRAFT rows, never
+// visible to students until a rep/admin reviews and publishes them.
+model ClassSession {
+  id               Int                 @id @default(autoincrement())
+  courseId         Int
+  course           Course              @relation(fields: [courseId], references: [id])
+  dayOfWeek        DayOfWeek
+  startTime        String              // 24h "HH:MM"
+  endTime          String              // 24h "HH:MM"
+  room             String?
+  lecturer         String?             // falls back to course.lecturer when unset
+  status           ClassSessionStatus  @default(DRAFT)
+  sourceResourceId Int?                // the uploaded timetable file (Resource, type=TIMETABLE), if extracted
+  sourceResource   Resource?           @relation(fields: [sourceResourceId], references: [id], onDelete: SetNull)
+  createdById      String?
+  createdBy        User?               @relation("ClassSessionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime            @default(now())
+
   @@index([courseId, status])
 }
 
