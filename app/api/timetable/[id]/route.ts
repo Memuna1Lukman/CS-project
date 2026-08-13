@@ -1,32 +1,31 @@
 import { z } from 'zod';
-import { audit, canWriteCourse, jsonError, parseId, requireActiveUser, validationError } from '@/lib/api';
+import { audit, canWriteLevel, jsonError, parseId, requireActiveUser, validationError } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string }> };
 
-const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
-const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
-
 const editSchema = z.object({
-  dayOfWeek: z.enum(days).optional(),
-  startTime: z.string().regex(timePattern, 'Use 24h HH:MM').optional(),
-  endTime: z.string().regex(timePattern, 'Use 24h HH:MM').optional(),
-  room: z.string().trim().max(60).nullable().optional(),
-  lecturer: z.string().trim().max(120).nullable().optional(),
+  academicPeriod: z.string().trim().min(2).max(60).optional(),
+  courseCode: z.string().trim().min(1).max(30).optional(),
+  courseTitle: z.string().trim().min(1).max(180).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD').optional(),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use 24h HH:MM').optional(),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use 24h HH:MM').optional(),
+  venue: z.string().trim().max(80).nullable().optional(),
 });
 
 async function editableSession(rawId: string, user: Awaited<ReturnType<typeof requireActiveUser>>) {
   const id = parseId(rawId);
   if (!id || !user) return null;
   const session = await prisma.classSession.findUnique({ where: { id } });
-  if (!session || !await canWriteCourse(user.id, user.role, session.courseId)) return null;
+  if (!session || !await canWriteLevel(user.id, user.role, session.levelScope)) return null;
   return session;
 }
 
-// Inline corrections on the review screen (day/time/room/lecturer) — used on
-// both DRAFT rows (pre-publish review) and PUBLISHED rows (fixing a mistake
-// after the fact), same scope check either way.
+// Inline corrections on the review screen — used on both DRAFT rows
+// (pre-publish review) and PUBLISHED rows (fixing a mistake after the
+// fact), same scope check either way.
 export async function PATCH(request: Request, { params }: Context) {
   const user = await requireActiveUser();
   if (!user) return jsonError('Authentication required', 401);
@@ -42,8 +41,12 @@ export async function PATCH(request: Request, { params }: Context) {
   const nextEnd = parsed.data.endTime ?? session.endTime;
   if (nextEnd <= nextStart) return jsonError('End time must be after start time');
 
-  const updated = await prisma.classSession.update({ where: { id: session.id }, data: parsed.data });
-  await audit(user.id, 'CLASS_SESSION_UPDATED', 'ClassSession', updated.id, { courseId: session.courseId });
+  const { date, ...rest } = parsed.data;
+  const updated = await prisma.classSession.update({
+    where: { id: session.id },
+    data: { ...rest, ...(date ? { date: new Date(date) } : {}) },
+  });
+  await audit(user.id, 'CLASS_SESSION_UPDATED', 'ClassSession', updated.id, { levelScope: session.levelScope });
 
   return Response.json(updated);
 }
@@ -59,7 +62,7 @@ export async function DELETE(_: Request, { params }: Context) {
   if (!session) return jsonError('Session not found or you do not have access', 404);
 
   await prisma.classSession.delete({ where: { id: session.id } });
-  await audit(user.id, 'CLASS_SESSION_DELETED', 'ClassSession', session.id, { courseId: session.courseId });
+  await audit(user.id, 'CLASS_SESSION_DELETED', 'ClassSession', session.id, { levelScope: session.levelScope });
 
   return Response.json({ ok: true });
 }

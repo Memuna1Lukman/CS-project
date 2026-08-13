@@ -9,7 +9,6 @@ import ResourceRow from '@/components/ResourceRow';
 import UploadResourceDrawer from '@/components/UploadResourceDrawer';
 import RequestMaterialDrawer from '@/components/RequestMaterialDrawer';
 import RecommendedVideos from '@/components/RecommendedVideos';
-import TimetableSection from '@/components/TimetableSection';
 import { useLibrary } from '@/components/LibraryProvider';
 import { useSession } from '@/components/SessionProvider';
 import { RESOURCE_TYPE_LABELS } from '@/lib/resourceType';
@@ -116,8 +115,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ code: s
           />
         )}
       </div>
-
-      <TimetableSection course={course} canUpload={canUpload} />
 
       <RecommendedVideos course={course} canUpload={canUpload} />
 
