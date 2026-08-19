@@ -47,13 +47,14 @@ export default function Sidebar({ activeLevel, onSelectLevel, open, onClose }: S
         />
       )}
 
-      {/* Floating panel, inset from the canvas edge. Fixed on mobile (off-canvas
-          drawer overlay); on desktop it's a normal flex child stretched to the
-          full height of the content row by the parent's items-stretch, so it
-          never scrolls away with <main> (only <main> scrolls — see page layouts). */}
+      {/* Off-canvas side drawer on mobile (slides in from the left, full
+          viewport height, own internal scroll). On desktop it reverts to a
+          normal flex child stretched to the full height of the content row
+          by the parent's items-stretch, so it never scrolls away with
+          <main> (only <main> scrolls — see page layouts). */}
       <aside
-        className={`fixed md:static top-16 bottom-0 md:top-auto md:bottom-auto left-0 z-30 shrink-0 md:my-4 md:ml-4 md:rounded-2xl bg-[var(--surface)] md:border md:border-[var(--border)] shadow-[0_1px_2px_var(--shadow),0_8px_24px_-6px_var(--shadow)] transform transition-transform duration-200 ease-out md:translate-x-0 flex flex-col md:h-auto ${
-          collapsed ? 'md:w-16' : 'w-64 md:w-[220px]'
+        className={`fixed top-16 bottom-0 md:static md:top-auto md:bottom-auto left-0 z-30 shrink-0 w-64 md:w-[220px] md:rounded-2xl bg-[var(--surface)] md:border md:border-[var(--border)] shadow-[0_1px_2px_var(--shadow),0_8px_24px_-6px_var(--shadow)] md:my-4 md:ml-4 transform transition-transform duration-200 ease-out md:translate-x-0 flex flex-col md:h-auto ${
+          collapsed ? 'md:w-16' : ''
         } ${open ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex items-center justify-between px-3 pt-3 pb-1">
@@ -72,7 +73,7 @@ export default function Sidebar({ activeLevel, onSelectLevel, open, onClose }: S
           </button>
         </div>
 
-        <nav aria-label="Level" className="flex-1 overflow-y-auto px-2.5 pb-4 space-y-1">
+        <nav aria-label="Level" className="flex-1 min-h-0 overflow-y-auto px-2.5 pb-4 space-y-1" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
           {LEVELS.map((level) => {
             const isActiveLevel = level === activeLevel;
             const isExpanded = expanded.has(level) && !collapsed;

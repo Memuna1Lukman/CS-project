@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Check, ExternalLink, Sparkles, X } from 'lucide-react';
+import { Check, ExternalLink, Sparkles, Trash2, X } from 'lucide-react';
 import { api } from '@/lib/clientApi';
 import { useToast } from './ToastProvider';
 import type { Course } from '@/types/resource';
@@ -113,6 +113,16 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
     }
   };
 
+  const handleDelete = async (id: number, title: string) => {
+    try {
+      await api(`/api/videos/${id}`, { method: 'DELETE' });
+      toast(`Removed "${title}" from recommended videos.`);
+      await load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Could not remove this video.', 'error');
+    }
+  };
+
   const suggestLabel = suggesting ? 'Finding videos…' : cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s` : 'Suggest videos';
 
   return (
@@ -132,13 +142,13 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
               placeholder="Topic (optional), e.g. Binary search trees"
               maxLength={120}
               disabled={suggesting}
-              className="h-9 min-w-0 flex-1 sm:w-56 px-3 rounded-full bg-[var(--surface-2)] border border-transparent text-xs text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none focus:border-[var(--focus)] disabled:opacity-50"
+              className="h-11 sm:h-9 min-w-0 flex-1 sm:w-56 px-3 rounded-full bg-[var(--surface-2)] border border-transparent text-xs text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none focus:border-[var(--focus)] disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={suggesting || cooldownRemaining > 0}
               aria-live="polite"
-              className="shrink-0 inline-flex items-center gap-1.5 min-h-9 px-3.5 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-semibold disabled:opacity-50"
+              className="shrink-0 inline-flex items-center gap-1.5 min-h-11 sm:min-h-9 px-3.5 rounded-full bg-[var(--accent)] text-[var(--accent-fg)] text-xs font-semibold disabled:opacity-50"
             >
               <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
               {suggestLabel}
@@ -161,7 +171,7 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
           </p>
           <ul className="space-y-2">
             {queue.map((v) => (
-              <li key={v.id} className="flex items-center gap-3 bg-[var(--surface-2)] rounded-xl p-2.5">
+              <li key={v.id} className="flex items-center gap-3 bg-[var(--surface-2)] rounded-xl p-2.5 transition-colors duration-150 hover:bg-[var(--surface-3)]">
                 <span className="hidden sm:block shrink-0 w-20 aspect-video rounded-lg overflow-hidden bg-[var(--surface-3)]">
                   {v.thumbnailUrl && (
                     // eslint-disable-next-line @next/next/no-img-element -- external YouTube thumbnail, not a local/optimizable asset
@@ -173,9 +183,9 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
                     href={v.youtubeUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--text-primary)] hover:underline"
+                    className="flex min-w-0 items-center gap-1 text-sm font-semibold text-[var(--text-primary)] hover:underline"
                   >
-                    <span className="truncate">{v.title}</span>
+                    <span className="min-w-0 truncate">{v.title}</span>
                     <ExternalLink className="w-3 h-3 shrink-0" aria-hidden="true" />
                   </a>
                   <p className="text-xs text-[var(--text-muted)] truncate">
@@ -187,7 +197,7 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
                     type="button"
                     onClick={() => handleReview(v.id, 'REJECTED')}
                     aria-label={`Reject ${v.title}`}
-                    className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
+                    className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-3)] active:bg-[var(--surface-3)]"
                   >
                     <X className="w-4 h-4" aria-hidden="true" />
                   </button>
@@ -195,7 +205,7 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
                     type="button"
                     onClick={() => handleReview(v.id, 'APPROVED')}
                     aria-label={`Approve ${v.title}`}
-                    className="w-9 h-9 flex items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)]"
+                    className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)]"
                   >
                     <Check className="w-4 h-4" aria-hidden="true" />
                   </button>
@@ -225,28 +235,37 @@ export default function RecommendedVideos({ course, canUpload }: { course: Cours
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {approved.map((v) => (
-            <a
+            <div
               key={v.id}
-              href={v.youtubeUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="group block rounded-2xl overflow-hidden bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_2px_var(--shadow)] transition-shadow duration-200 hover:shadow-[0_12px_28px_-8px_var(--shadow)]"
+              className="group relative min-w-0 rounded-2xl overflow-hidden bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_2px_var(--shadow)] transition-shadow duration-200 hover:shadow-[0_12px_28px_-8px_var(--shadow)]"
             >
-              <div className="aspect-video bg-[var(--surface-2)]">
-                {v.thumbnailUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element -- external YouTube thumbnail, not a local/optimizable asset
-                  <img src={v.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                )}
-              </div>
-              <div className="p-3">
-                <p className="text-sm font-semibold text-[var(--text-primary)] line-clamp-2">{v.title}</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)] truncate">{v.channelName}</p>
-                <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-subtle)]">
-                  {formatCount(v.viewCount)} views
-                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
-                </span>
-              </div>
-            </a>
+              {canUpload && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(v.id, v.title)}
+                  aria-label={`Remove ${v.title}`}
+                  className="absolute top-2 right-2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-[var(--scrim)] text-[var(--text-primary)] backdrop-blur-sm hover:bg-[var(--surface-3)] active:bg-[var(--surface-3)]"
+                >
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                </button>
+              )}
+              <a href={v.youtubeUrl} target="_blank" rel="noreferrer" className="block min-w-0">
+                <div className="aspect-video bg-[var(--surface-2)]">
+                  {v.thumbnailUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- external YouTube thumbnail, not a local/optimizable asset
+                    <img src={v.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                  )}
+                </div>
+                <div className="min-w-0 p-3">
+                  <p className="min-w-0 text-sm font-semibold text-[var(--text-primary)] line-clamp-2 break-words">{v.title}</p>
+                  <p className="mt-1 min-w-0 text-xs text-[var(--text-muted)] truncate">{v.channelName}</p>
+                  <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-subtle)]">
+                    {formatCount(v.viewCount)} views
+                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+                  </span>
+                </div>
+              </a>
+            </div>
           ))}
         </div>
       )}
